@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
@@ -47,6 +47,26 @@ function confidenceLabel(aggregate: number): string {
   if (aggregate >= 80) return "High"
   if (aggregate >= 50) return "Medium"
   return "Low"
+}
+
+function riskBucketLabel(bucket: string): string {
+  switch (bucket) {
+    case "high_mastery": return "High Mastery"
+    case "on_track": return "On Track"
+    case "at_risk": return "At Risk"
+    case "disengaged": return "Disengaged"
+    default: return ""
+  }
+}
+
+function riskBucketClass(bucket: string): string {
+  switch (bucket) {
+    case "high_mastery": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+    case "on_track": return "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
+    case "at_risk": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+    case "disengaged": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+    default: return "bg-muted text-muted-foreground"
+  }
 }
 
 export function LearnerInsightsContent() {
@@ -135,19 +155,27 @@ function LearnerInsightsContentInner() {
   const retrievalScore = selectedLearner?.comprehensionScore ?? 0
   const retentionScore = selectedLearner?.retentionScore ?? 0
   const behaviourScore = selectedLearner?.behavioralScore ?? 0
+  const storedMastery = selectedLearner?.masteryScore
   const aggregateMastery = useMemo(() => {
+    if (storedMastery != null) return storedMastery
     const weights = [0.4, 0.3, 0.2, 0.1]
     const values = [applicationScore, retrievalScore, retentionScore, behaviourScore]
-    const total = weights.reduce((s, w) => s + w, 0)
-    if (total === 0) return 0
-    return Math.round(
-      values.reduce((acc, v, i) => acc + (v ?? 0) * (weights[i] ?? 0), 0) / total
-    )
-  }, [applicationScore, retrievalScore, retentionScore, behaviourScore])
-  const displayMastery = Math.min(100, Math.max(0, aggregateMastery))
-  const masteryScore = Math.round(
-    (applicationScore * 0.4 + retrievalScore * 0.3 + retentionScore * 0.2 + behaviourScore * 0.1) / 1
-  )
+    return values.reduce((acc, v, i) => acc + (v ?? 0) * (weights[i] ?? 0), 0)
+  }, [storedMastery, applicationScore, retrievalScore, retentionScore, behaviourScore])
+  const displayMastery = Math.min(100, Math.max(0, Math.round(aggregateMastery * 100) / 100))
+  const masteryScore = storedMastery != null ? storedMastery : Math.round(aggregateMastery * 100) / 100
+  const riskBucket = selectedLearner?.riskBucket ?? selectedLearner?.riskLevel ?? ""
+  const recalculateScores = useMutation(api.scores.recalculateScoresForUser)
+  const [recalculating, setRecalculating] = useState(false)
+  const handleRecalculate = async () => {
+    if (!selectedLearner?.userId) return
+    setRecalculating(true)
+    try {
+      await recalculateScores({ userId: selectedLearner.userId })
+    } finally {
+      setRecalculating(false)
+    }
+  }
 
   const chartConfig = useMemo(
     () => ({
@@ -205,6 +233,16 @@ function LearnerInsightsContentInner() {
                 ))}
               </SelectContent>
             </Select>
+            {selectedLearnerId && selectedLearner?.userId && (
+              <button
+                type="button"
+                onClick={handleRecalculate}
+                disabled={recalculating}
+                className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+              >
+                {recalculating ? "Recalculating…" : "Recalculate scores"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -317,8 +355,8 @@ function LearnerInsightsContentInner() {
                       <span className={`rounded-md px-2 py-1 text-xs font-medium ${impactClass(impactFromScore(aggregateMastery))}`}>
                         {masteryLabel(aggregateMastery)}
                       </span>
-                      <span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                        Confidence: {confidenceLabel(aggregateMastery)}
+                      <span className={`rounded-md px-2 py-1 text-xs font-medium ${riskBucketClass(riskBucket)}`}>
+                        {riskBucketLabel(riskBucket) || `Confidence: ${confidenceLabel(aggregateMastery)}`}
                       </span>
                     </div>
                   </div>

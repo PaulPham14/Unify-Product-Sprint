@@ -44,7 +44,7 @@ export const getByUserAndTask = query({
   },
 });
 
-/** Insert a task result */
+/** Insert a task result. After calling this, call scores.recalculateScoresForUser({ userId }) to update the user's mastery scores. */
 export const insert = mutation({
   args: {
     userId: v.string(),
@@ -55,9 +55,11 @@ export const insert = mutation({
     maxScore: v.float64(),
     completedAt: v.float64(),
     resultId: v.string(),
+    assignmentWeight: v.optional(v.float64()),
     cohortId: v.optional(v.string()),
     conceptIds: v.optional(v.array(v.string())),
     attempts: v.optional(v.float64()),
+    dropOffConceptId: v.optional(v.string()),
     responseTimeAvgSec: v.optional(v.float64()),
     inactiveTabRate: v.optional(v.float64()),
     sessionFrequency: v.optional(v.float64()),

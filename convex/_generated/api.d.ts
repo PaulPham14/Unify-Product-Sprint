@@ -10,7 +10,9 @@
 
 import type * as cohorts from "../cohorts.js";
 import type * as concepts from "../concepts.js";
+import type * as lessons from "../lessons.js";
 import type * as modules from "../modules.js";
+import type * as scores from "../scores.js";
 import type * as taskResults from "../taskResults.js";
 import type * as tasks from "../tasks.js";
 import type * as users from "../users.js";
@@ -24,7 +26,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   cohorts: typeof cohorts;
   concepts: typeof concepts;
+  lessons: typeof lessons;
   modules: typeof modules;
+  scores: typeof scores;
   taskResults: typeof taskResults;
   tasks: typeof tasks;
   users: typeof users;

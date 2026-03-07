@@ -25,6 +25,16 @@ export default defineSchema({
     title: v.optional(v.string()),
   }).index("by_moduleId", ["moduleId"]),
 
+  lesson: defineTable({
+    conceptId: v.string(),
+    contentType: v.string(),
+    moduleId: v.string(),
+    order: v.float64(),
+    title: v.string(),
+  })
+    .index("by_moduleId", ["moduleId"])
+    .index("by_conceptId", ["conceptId"]),
+
   modules: defineTable({
     cohortId: v.optional(v.string()),
     createdAt: v.float64(),
@@ -40,10 +50,12 @@ export default defineSchema({
 
   task_results: defineTable({
     attempts: v.optional(v.float64()),
+    assignmentWeight: v.optional(v.float64()),
     cohortId: v.optional(v.string()),
     completedAt: v.float64(),
     conceptIds: v.optional(v.array(v.string())),
     createdAt: v.optional(v.float64()),
+    dropOffConceptId: v.optional(v.string()),
     inactiveTabRate: v.optional(v.float64()),
     instructorApproved: v.optional(v.union(v.null(), v.boolean())),
     maxScore: v.float64(),
@@ -66,6 +78,7 @@ export default defineSchema({
     .index("by_userId_taskId", ["userId", "taskId"]),
 
   tasks: defineTable({
+    assignmentWeight: v.optional(v.float64()),
     conceptId: v.string(),
     maxScore: v.optional(v.float64()),
     moduleId: v.string(),
@@ -86,8 +99,11 @@ export default defineSchema({
     email: v.string(),
     insightsScore: v.optional(v.float64()),
     lastActiveAt: v.optional(v.float64()),
+    lastScoreUpdateAt: v.optional(v.float64()),
+    masteryScore: v.optional(v.float64()),
     name: v.string(),
     retentionScore: v.optional(v.float64()),
+    riskBucket: v.optional(v.string()),
     riskLevel: v.optional(v.string()),
     role: v.string(),
     userId: v.optional(v.string()),

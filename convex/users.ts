@@ -77,6 +77,9 @@ export const patch = mutation({
     insightsScore: v.optional(v.float64()),
     retentionScore: v.optional(v.float64()),
     riskLevel: v.optional(v.string()),
+    riskBucket: v.optional(v.string()),
+    masteryScore: v.optional(v.float64()),
+    lastScoreUpdateAt: v.optional(v.float64()),
     lastActiveAt: v.optional(v.float64()),
   },
   handler: async (ctx, { id, ...updates }) => {
