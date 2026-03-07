@@ -85,13 +85,6 @@ export function PageHeader({ activePage, homeSubPage = "for-you" }: PageHeaderPr
   }
 
   switch (activePage) {
-    case "dashboard":
-      return (
-        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
-          <i className="fi fi-rr-layout-fluid text-base text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Dashboard</span>
-        </div>
-      )
     case "learning":
       return (
         <div className="flex items-center justify-between border-b border-border px-6 py-3 bg-card">

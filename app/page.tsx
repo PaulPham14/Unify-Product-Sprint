@@ -9,7 +9,6 @@ import { LearningContent } from "@/components/learning-content"
 import { EventsContent } from "@/components/events-content"
 import { ChatContent } from "@/components/chat-content"
 import { AdminContent } from "@/components/admin-content"
-import { DashboardContent } from "@/components/dashboard-content"
 import { AcademyContent } from "@/components/home/academy-content"
 import { MembersContent } from "@/components/home/members-content"
 import { AnnouncementsContent } from "@/components/home/announcements-content"
@@ -58,7 +57,6 @@ export default function Page() {
         <TopBar />
         <PageHeader activePage={activePage} homeSubPage={homeSubPage} />
         {activePage === "home" && renderHomeContent()}
-        {activePage === "dashboard" && <DashboardContent />}
         {activePage === "learning" && <LearningContent />}
         {activePage === "events" && <EventsContent />}
         {activePage === "chat" && <ChatContent />}
