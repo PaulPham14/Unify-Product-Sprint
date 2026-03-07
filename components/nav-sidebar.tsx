@@ -161,6 +161,25 @@ function HomeSidebar({ activeSubPage, onSubPageChange }: { activeSubPage: HomeSu
   )
 }
 
+function DashboardSidebar() {
+  return (
+    <>
+      <SidebarHeader
+        icon={BarChart3}
+        title="Dashboard"
+      />
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        <nav className="flex flex-col gap-0.5">
+          <button className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm bg-primary text-primary-foreground">
+            <BarChart3 className="h-4 w-4" />
+            <span>Overview</span>
+          </button>
+        </nav>
+      </div>
+    </>
+  )
+}
+
 function LearningSidebar() {
   return (
     <>
@@ -355,6 +374,7 @@ export function NavSidebar({ activePage, homeSubPage = "for-you", onHomeSubPageC
   return (
     <div className="flex h-screen w-60 flex-col border-r border-border bg-card">
       {activePage === "home" && <HomeSidebar activeSubPage={homeSubPage} onSubPageChange={onHomeSubPageChange ?? (() => {})} />}
+      {activePage === "dashboard" && <DashboardSidebar />}
       {activePage === "learning" && <LearningSidebar />}
       {activePage === "events" && <EventsSidebar />}
       {activePage === "chat" && <ChatSidebar />}
