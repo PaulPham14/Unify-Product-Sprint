@@ -34,7 +34,7 @@ import { useState } from "react"
 const homeMainNav: { icon: React.ElementType; label: string; id: HomeSubPage }[] = [
   { icon: Sparkles, label: "For You", id: "for-you" },
   { icon: LayoutGrid, label: "Academy", id: "academy" },
-  { icon: Users, label: "Members", id: "members" },
+  { icon: Users, label: "Learners", id: "learners" },
 ]
 
 const memberSpace: { icon: React.ElementType; label: string; id: HomeSubPage }[] = [
@@ -164,7 +164,6 @@ function HomeSidebar({ activeSubPage, onSubPageChange }: { activeSubPage: HomeSu
 const dashboardNav: { icon: React.ElementType; label: string; id: DashboardSubPage }[] = [
   { icon: Sparkles, label: "For You", id: "for-you" },
   { icon: LayoutGrid, label: "Courses", id: "courses" },
-  { icon: Users, label: "Learners", id: "learners" },
 ]
 
 function DashboardSidebar({ activeSubPage, onSubPageChange }: { activeSubPage: DashboardSubPage; onSubPageChange: (p: DashboardSubPage) => void }) {

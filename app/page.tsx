@@ -11,9 +11,8 @@ import { ChatContent } from "@/components/chat-content"
 import { AdminContent } from "@/components/admin-content"
 import { DashboardForYouContent } from "@/components/dashboard/for-you-content"
 import { DashboardCoursesContent } from "@/components/dashboard/courses-content"
-import { DashboardLearnersContent } from "@/components/dashboard/learners-content"
+import { LearnerInsightsContent } from "@/components/learner-insights-content"
 import { AcademyContent } from "@/components/home/academy-content"
-import { MembersContent } from "@/components/home/members-content"
 import { AnnouncementsContent } from "@/components/home/announcements-content"
 import { QuestionsContent } from "@/components/home/questions-content"
 import { MemberEventsContent } from "@/components/home/member-events-content"
@@ -40,8 +39,8 @@ export default function Page() {
         return <MainContent />
       case "academy":
         return <AcademyContent />
-      case "members":
-        return <MembersContent />
+      case "learners":
+        return <LearnerInsightsContent />
       case "announcements":
         return <AnnouncementsContent />
       case "questions":
@@ -61,8 +60,6 @@ export default function Page() {
         return <DashboardForYouContent />
       case "courses":
         return <DashboardCoursesContent />
-      case "learners":
-        return <DashboardLearnersContent />
       default:
         return <DashboardForYouContent />
     }

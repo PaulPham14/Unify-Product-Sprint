@@ -10,8 +10,8 @@ import {
 } from "lucide-react"
 
 export type PageId = "home" | "dashboard" | "learning" | "events" | "chat" | "admin"
-export type HomeSubPage = "for-you" | "academy" | "members" | "announcements" | "questions" | "member-events" | "resources"
-export type DashboardSubPage = "for-you" | "courses" | "learners"
+export type HomeSubPage = "for-you" | "academy" | "learners" | "announcements" | "questions" | "member-events" | "resources"
+export type DashboardSubPage = "for-you" | "courses"
 
 function FlatIcon({ iconClass }: { iconClass: string }) {
   return (

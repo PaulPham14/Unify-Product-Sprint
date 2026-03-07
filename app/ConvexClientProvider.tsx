@@ -1,7 +1,7 @@
 "use client";
 
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { ReactNode } from "react";
+import { createContext, ReactNode, useContext } from "react";
 
 const url = process.env.NEXT_PUBLIC_CONVEX_URL;
 const convex =
@@ -9,9 +9,23 @@ const convex =
     ? new ConvexReactClient(url)
     : null;
 
+export const ConvexAvailableContext = createContext(false);
+
+export function useConvexAvailable() {
+  return useContext(ConvexAvailableContext);
+}
+
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   if (!convex) {
-    return <>{children}</>;
+    return (
+      <ConvexAvailableContext.Provider value={false}>
+        {children}
+      </ConvexAvailableContext.Provider>
+    );
   }
-  return <ConvexProvider client={convex}>{children}</ConvexProvider>;
+  return (
+    <ConvexAvailableContext.Provider value={true}>
+      <ConvexProvider client={convex}>{children}</ConvexProvider>
+    </ConvexAvailableContext.Provider>
+  );
 }
