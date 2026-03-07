@@ -15,6 +15,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { format } from "date-fns"
+import { MoreHorizontal, ExternalLink } from "lucide-react"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
 
@@ -65,7 +66,7 @@ function riskBucketClass(bucket: string): string {
     case "on_track": return "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
     case "at_risk": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
     case "disengaged": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-    default: return "bg-muted text-muted-foreground"
+    default: return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
   }
 }
 
@@ -211,57 +212,55 @@ function LearnerInsightsContentInner() {
   return (
     <div className="flex-1 overflow-y-auto bg-background p-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold text-foreground">Learner Insights</h1>
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={selectedModuleId} onValueChange={setSelectedModuleId}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Course / Module" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All modules</SelectItem>
-                {modules?.map((m) => (
-                  <SelectItem key={m.moduleId} value={m.moduleId}>
-                    {m.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={selectedLearnerId || "none"}
-              onValueChange={(v) => setSelectedLearnerId(v === "none" ? "" : (v as Id<"user">))}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select learner" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Select learner</SelectItem>
-                {learners.map((u) => (
-                  <SelectItem key={u._id} value={u._id}>
-                    {u.name || u.userId || "Unknown"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Top: Course + Student dropdowns, then actions */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={selectedModuleId} onValueChange={setSelectedModuleId}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Course / Module" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All modules</SelectItem>
+              {modules?.map((m) => (
+                <SelectItem key={m.moduleId} value={m.moduleId}>
+                  {m.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedLearnerId || "none"}
+            onValueChange={(v) => setSelectedLearnerId(v === "none" ? "" : (v as Id<"user">))}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select learner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Select learner</SelectItem>
+              {learners.map((u) => (
+                <SelectItem key={u._id} value={u._id}>
+                  {u.name || (u.userId ? `Student ID ${u.userId}` : "Unknown")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <button
+            type="button"
+            onClick={handleSeedDemoData}
+            disabled={seeding}
+            className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+          >
+            {seeding ? "Seeding…" : "Seed demo data"}
+          </button>
+          {selectedLearnerId && selectedLearner?.userId && (
             <button
               type="button"
-              onClick={handleSeedDemoData}
-              disabled={seeding}
+              onClick={handleRecalculate}
+              disabled={recalculating}
               className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
             >
-              {seeding ? "Seeding…" : "Seed demo data"}
+              {recalculating ? "Recalculating…" : "Recalculate scores"}
             </button>
-            {selectedLearnerId && selectedLearner?.userId && (
-              <button
-                type="button"
-                onClick={handleRecalculate}
-                disabled={recalculating}
-                className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
-              >
-                {recalculating ? "Recalculating…" : "Recalculate scores"}
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {!selectedLearnerId ? (
@@ -271,124 +270,136 @@ function LearnerInsightsContentInner() {
           </div>
         ) : (
           <>
-            <section>
-              <h2 className="mb-4 text-sm font-medium text-foreground">
-                Individual Performance Insights
-              </h2>
+            {/* Main title: Individual Performance Insights */}
+            <h1 className="text-center text-xl font-bold text-foreground">
+              Individual Performance Insights
+            </h1>
 
-              <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2 rounded-lg border border-border bg-card p-4 shadow-sm">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">Lesson Progress</span>
-                    <Select value={chartMonth} onValueChange={setChartMonth}>
-                      <SelectTrigger className="h-8 w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {monthOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="h-[240px]">
-                    <ChartContainer config={chartConfig} className="h-full w-full">
-                      <LineChart data={lessonProgressData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                        <XAxis dataKey="week" tick={{ fontSize: 11 }} />
-                        <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Line type="monotone" dataKey="Quizzes" stroke="var(--color-Quizzes)" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="Assignments" stroke="var(--color-Assignments)" strokeWidth={2} dot={{ r: 3 }} />
-                      </LineChart>
-                    </ChartContainer>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-                  <div className="mb-3 flex justify-end">
-                    <Select value={chartMonth} onValueChange={setChartMonth}>
-                      <SelectTrigger className="h-8 w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {monthOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="relative h-28 w-28">
-                      <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                        <path
-                          className="text-muted stroke-[2.5]"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeDasharray="100"
-                          d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
-                        />
-                        <path
-                          className="text-primary stroke-[2.5]"
-                          fill="none"
-                          strokeDasharray={`${displayMastery} 100`}
-                          strokeLinecap="round"
-                          stroke="currentColor"
-                          d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-lg font-bold text-foreground">{Math.round(displayMastery)}</span>
-                        <span className="text-xs text-muted-foreground">out of 100</span>
-                      </div>
-                    </div>
-                    <div className="w-full space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Application</span>
-                        <span className="font-medium">{Math.round(applicationScore)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Retrieval</span>
-                        <span className="font-medium">{Math.round(retrievalScore)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Retention</span>
-                        <span className="font-medium">{Math.round(retentionScore)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Behaviour</span>
-                        <span className="font-medium">{Math.round(behaviourScore)}%</span>
-                      </div>
-                    </div>
-                    <div className="w-full border-t border-border pt-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Aggregate</span>
-                        <span className="font-semibold">{Math.min(100, Math.max(0, masteryScore))} out of 100</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className={`rounded-md px-2 py-1 text-xs font-medium ${impactClass(impactFromScore(aggregateMastery))}`}>
-                        {masteryLabel(aggregateMastery)}
-                      </span>
-                      <span className={`rounded-md px-2 py-1 text-xs font-medium ${riskBucketClass(riskBucket)}`}>
-                        {riskBucketLabel(riskBucket) || `Confidence: ${confidenceLabel(aggregateMastery)}`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+            {/* Lesson Progress — full-width section on top */}
+            <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Lesson Progress</span>
+                <Select value={chartMonth} onValueChange={setChartMonth}>
+                  <SelectTrigger className="h-8 w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="h-[240px]">
+                <ChartContainer config={chartConfig} className="h-full w-full">
+                  <LineChart data={lessonProgressData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                    <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="Quizzes" stroke="var(--color-Quizzes)" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="Assignments" stroke="var(--color-Assignments)" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ChartContainer>
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-4">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[var(--chart-1)]" />
+                  Quizzes
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[var(--chart-2)]" />
+                  Assignments
+                </span>
               </div>
             </section>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Mastery Score — score on top, then 4 breakdown, then aggregate + pills */}
+            <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Mastery Score</span>
+                <Select value={chartMonth} onValueChange={setChartMonth}>
+                  <SelectTrigger className="h-8 w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Score on top: gauge + "X out of 100" */}
+              <div className="flex flex-col items-center gap-2 pb-4 border-b border-border">
+                <div className="relative h-32 w-32">
+                  <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-muted stroke-[2.5]"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeDasharray="100"
+                      d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                    />
+                    <path
+                      className="text-primary stroke-[2.5]"
+                      fill="none"
+                      strokeDasharray={`${displayMastery} 100`}
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold text-foreground">{Math.round(displayMastery)}</span>
+                    <span className="text-xs text-muted-foreground">out of 100</span>
+                  </div>
+                </div>
+              </div>
+              {/* 4 component breakdown */}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-1 py-4 border-b border-border text-sm sm:grid-cols-4">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Application</span>
+                  <span className="font-medium text-primary">40%</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Retrieval</span>
+                  <span className="font-medium text-primary">30%</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Retention</span>
+                  <span className="font-medium text-primary">20%</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">Behaviour</span>
+                  <span className="font-medium text-primary">10%</span>
+                </div>
+              </div>
+              {/* Aggregate + pills */}
+              <div className="flex flex-wrap items-center gap-3 pt-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm text-muted-foreground">Aggregate</span>
+                  <span className="text-sm font-semibold">{Math.min(100, Math.max(0, Math.round(masteryScore)))} out of 100</span>
+                </div>
+                <span className={`rounded-md px-2 py-1 text-xs font-medium ${impactClass(impactFromScore(aggregateMastery))}`}>
+                  {masteryLabel(aggregateMastery)}
+                </span>
+                <span className={`rounded-md px-2 py-1 text-xs font-medium ${riskBucketClass(riskBucket)}`}>
+                  {riskBucketLabel(riskBucket) || `Confidence: ${confidenceLabel(aggregateMastery)}`}
+                </span>
+              </div>
+            </section>
+
+            {/* 2x2 Detailed score cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InsightCard
                 title="Retrieval Practice"
                 score={retrievalScore}
                 observations={[
-                  "Quiz accuracy: " + (retrievalScore ? `${Math.min(100, Math.round(retrievalScore * 0.95))}%` : "—"),
+                  retrievalScore ? `Quiz accuracy: ${Math.min(100, Math.round(retrievalScore * 0.95))}%` : "Quiz accuracy: —",
                   "Retry attempts: " + (retrievalScore < 60 ? "High" : retrievalScore < 80 ? "Moderate" : "Low"),
                   "Response time: " + (retrievalScore < 50 ? "Slow" : "Normal"),
                 ]}
@@ -418,6 +429,25 @@ function LearnerInsightsContentInner() {
                 ]}
               />
             </div>
+
+            {/* Action To Take placeholder */}
+            <section>
+              <h2 className="mb-3 text-sm font-medium text-foreground">Action To Take</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4" />
+                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4 flex items-center justify-center">
+                  <MoreHorizontal className="h-6 w-6 text-muted-foreground" />
+                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4">
+                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+            </section>
           </>
         )}
       </div>
@@ -448,11 +478,16 @@ function InsightCard({
       <p className="mb-3 text-2xl font-semibold text-foreground">
         {displayScore} <span className="text-sm font-normal text-muted-foreground">out of 100</span>
       </p>
-      <ul className="space-y-1 text-xs text-muted-foreground">
+      <div className="flex flex-wrap gap-2">
         {observations.map((obs, i) => (
-          <li key={i}>{obs}</li>
+          <span
+            key={i}
+            className="rounded-lg bg-muted/80 px-2.5 py-1.5 text-xs text-muted-foreground"
+          >
+            {obs}
+          </span>
         ))}
-      </ul>
+      </div>
     </div>
   )
 }

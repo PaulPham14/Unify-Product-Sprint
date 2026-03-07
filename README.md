@@ -16,6 +16,8 @@ Course
 - **Behavior:** session frequency/recency, inactive tabs (>15% significant), drop-off
 - **Cohort bucket:** High Mastery (85–100), On Track (65–84), At Risk (50–64), Disengaged (0–49 or inactive 30+ days)
 
+→ **Full breakdown:** [docs/SCORE_BREAKDOWN.md](docs/SCORE_BREAKDOWN.md) (formulas, thresholds, dashboard labels, file reference)
+
 ## Convex backend
 
 The app uses [Convex](https://convex.dev) as the database. Schema, queries, and mutations live in `/convex/`.
