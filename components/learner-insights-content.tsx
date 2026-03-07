@@ -316,119 +316,124 @@ function LearnerInsightsContentInner() {
               </div>
             </section>
 
-            {/* Mastery Score — score on top, then 4 breakdown, then aggregate + pills */}
-            <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Mastery Score</span>
-                <Select value={chartMonth} onValueChange={setChartMonth}>
-                  <SelectTrigger className="h-8 w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {monthOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Score on top: gauge + "X out of 100" */}
-              <div className="flex flex-col items-center gap-2 pb-4 border-b border-border">
-                <div className="relative h-32 w-32">
-                  <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      className="text-muted stroke-[2.5]"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeDasharray="100"
-                      d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
-                    />
-                    <path
-                      className="text-primary stroke-[2.5]"
-                      fill="none"
-                      strokeDasharray={`${displayMastery} 100`}
-                      strokeLinecap="round"
-                      stroke="currentColor"
-                      d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-foreground">{Math.round(displayMastery)}</span>
-                    <span className="text-xs text-muted-foreground">out of 100</span>
+            {/* Big overall card: Mastery Score summary on top, line, then 4 breakdown cards */}
+            <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              {/* Mastery Score card on top */}
+              <div className="rounded-lg border border-border bg-muted/20 p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Mastery Score</span>
+                  <Select value={chartMonth} onValueChange={setChartMonth}>
+                    <SelectTrigger className="h-8 w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-6">
+                  <div className="relative h-28 w-28 shrink-0">
+                    <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                      <path
+                        className="text-muted stroke-[2.5]"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeDasharray="100"
+                        d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                      />
+                      <path
+                        className="text-primary stroke-[2.5]"
+                        fill="none"
+                        strokeDasharray={`${displayMastery} 100`}
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-xl font-bold text-foreground">{Math.round(displayMastery)}</span>
+                      <span className="text-xs text-muted-foreground">out of 100</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-1 flex-col justify-center gap-3">
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Application</span>
+                        <span className="font-medium text-primary">40%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Retrieval</span>
+                        <span className="font-medium text-primary">30%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Retention</span>
+                        <span className="font-medium text-primary">20%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Behaviour</span>
+                        <span className="font-medium text-primary">10%</span>
+                      </div>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-semibold text-foreground">{Math.min(100, Math.max(0, Math.round(masteryScore)))}</span>
+                      <span className="text-muted-foreground"> out of 100</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`rounded-md px-2 py-1 text-xs font-medium ${impactClass(impactFromScore(aggregateMastery))}`}>
+                        {masteryLabel(aggregateMastery)}
+                      </span>
+                      <span className={`rounded-md px-2 py-1 text-xs font-medium ${riskBucketClass(riskBucket)}`}>
+                        {riskBucketLabel(riskBucket) || `Confidence: ${confidenceLabel(aggregateMastery)}`}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-              {/* 4 component breakdown */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-1 py-4 border-b border-border text-sm sm:grid-cols-4">
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Application</span>
-                  <span className="font-medium text-primary">40%</span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Retrieval</span>
-                  <span className="font-medium text-primary">30%</span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Retention</span>
-                  <span className="font-medium text-primary">20%</span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">Behaviour</span>
-                  <span className="font-medium text-primary">10%</span>
-                </div>
-              </div>
-              {/* Aggregate + pills */}
-              <div className="flex flex-wrap items-center gap-3 pt-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-sm text-muted-foreground">Aggregate</span>
-                  <span className="text-sm font-semibold">{Math.min(100, Math.max(0, Math.round(masteryScore)))} out of 100</span>
-                </div>
-                <span className={`rounded-md px-2 py-1 text-xs font-medium ${impactClass(impactFromScore(aggregateMastery))}`}>
-                  {masteryLabel(aggregateMastery)}
-                </span>
-                <span className={`rounded-md px-2 py-1 text-xs font-medium ${riskBucketClass(riskBucket)}`}>
-                  {riskBucketLabel(riskBucket) || `Confidence: ${confidenceLabel(aggregateMastery)}`}
-                </span>
+
+              {/* Line under mastery summary */}
+              <hr className="my-6 border-border" />
+
+              {/* 4 breakdown cards (2x2) */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <InsightCard
+                  title="Retrieval Practice"
+                  score={retrievalScore}
+                  observations={[
+                    retrievalScore ? `Quiz accuracy: ${Math.min(100, Math.round(retrievalScore * 0.95))}%` : "Quiz accuracy: —",
+                    "Retry attempts: " + (retrievalScore < 60 ? "High" : retrievalScore < 80 ? "Moderate" : "Low"),
+                    "Response time: " + (retrievalScore < 50 ? "Slow" : "Normal"),
+                  ]}
+                />
+                <InsightCard
+                  title="Applied Tasks"
+                  score={applicationScore}
+                  observations={[
+                    "Project rubric: " + (applicationScore >= 75 ? "strong" : applicationScore >= 50 ? "adequate" : "needs work"),
+                    "Assignment performance: " + (applicationScore >= 70 ? "consistent" : "variable"),
+                  ]}
+                />
+                <InsightCard
+                  title="Retention"
+                  score={retentionScore}
+                  observations={[
+                    retentionScore < 65 ? "Week-over-week recall drop" : "Stable recall",
+                    retentionScore < 60 ? "Reinforcement missing" : "Reinforcement on track",
+                  ]}
+                />
+                <InsightCard
+                  title="Learning Behaviour"
+                  score={behaviourScore}
+                  observations={[
+                    "Video replays: " + (behaviourScore >= 70 ? "high" : "moderate"),
+                    "Discussion engagement: " + (behaviourScore >= 65 ? "good" : "low"),
+                  ]}
+                />
               </div>
             </section>
-
-            {/* 2x2 Detailed score cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <InsightCard
-                title="Retrieval Practice"
-                score={retrievalScore}
-                observations={[
-                  retrievalScore ? `Quiz accuracy: ${Math.min(100, Math.round(retrievalScore * 0.95))}%` : "Quiz accuracy: —",
-                  "Retry attempts: " + (retrievalScore < 60 ? "High" : retrievalScore < 80 ? "Moderate" : "Low"),
-                  "Response time: " + (retrievalScore < 50 ? "Slow" : "Normal"),
-                ]}
-              />
-              <InsightCard
-                title="Applied Tasks"
-                score={applicationScore}
-                observations={[
-                  "Project rubric: " + (applicationScore >= 75 ? "strong" : applicationScore >= 50 ? "adequate" : "needs work"),
-                  "Assignment performance: " + (applicationScore >= 70 ? "consistent" : "variable"),
-                ]}
-              />
-              <InsightCard
-                title="Retention"
-                score={retentionScore}
-                observations={[
-                  retentionScore < 65 ? "Week-over-week recall drop" : "Stable recall",
-                  retentionScore < 60 ? "Reinforcement missing" : "Reinforcement on track",
-                ]}
-              />
-              <InsightCard
-                title="Learning Behaviour"
-                score={behaviourScore}
-                observations={[
-                  "Video replays: " + (behaviourScore >= 70 ? "high" : "moderate"),
-                  "Discussion engagement: " + (behaviourScore >= 65 ? "good" : "low"),
-                ]}
-              />
-            </div>
 
             {/* Action To Take placeholder */}
             <section>
