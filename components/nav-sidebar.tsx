@@ -28,7 +28,7 @@ import {
   ChevronRight,
   MoreHorizontal,
 } from "lucide-react"
-import type { PageId, HomeSubPage } from "./icon-sidebar"
+import type { PageId, HomeSubPage, DashboardSubPage } from "./icon-sidebar"
 import { useState } from "react"
 
 const homeMainNav: { icon: React.ElementType; label: string; id: HomeSubPage }[] = [
@@ -161,19 +161,39 @@ function HomeSidebar({ activeSubPage, onSubPageChange }: { activeSubPage: HomeSu
   )
 }
 
-function DashboardSidebar() {
+const dashboardNav: { icon: React.ElementType; label: string; id: DashboardSubPage }[] = [
+  { icon: Sparkles, label: "For You", id: "for-you" },
+  { icon: LayoutGrid, label: "Courses", id: "courses" },
+  { icon: Users, label: "Learners", id: "learners" },
+]
+
+function DashboardSidebar({ activeSubPage, onSubPageChange }: { activeSubPage: DashboardSubPage; onSubPageChange: (p: DashboardSubPage) => void }) {
   return (
     <>
-      <SidebarHeader
-        icon={BarChart3}
-        title="Dashboard"
-      />
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center">
+            <i className="fi fi-rr-layout-fluid text-[18px] leading-none text-foreground" />
+          </span>
+          <span className="text-sm font-semibold text-foreground">Dashboard</span>
+        </div>
+      </div>
       <div className="flex-1 overflow-y-auto px-3 py-2">
         <nav className="flex flex-col gap-0.5">
-          <button className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm bg-primary text-primary-foreground">
-            <BarChart3 className="h-4 w-4" />
-            <span>Overview</span>
-          </button>
+          {dashboardNav.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onSubPageChange(item.id)}
+              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                activeSubPage === item.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-sidebar-foreground hover:bg-secondary"
+              }`}
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
+            </button>
+          ))}
         </nav>
       </div>
     </>
@@ -368,13 +388,15 @@ interface NavSidebarProps {
   activePage: PageId
   homeSubPage?: HomeSubPage
   onHomeSubPageChange?: (p: HomeSubPage) => void
+  dashboardSubPage?: DashboardSubPage
+  onDashboardSubPageChange?: (p: DashboardSubPage) => void
 }
 
-export function NavSidebar({ activePage, homeSubPage = "for-you", onHomeSubPageChange }: NavSidebarProps) {
+export function NavSidebar({ activePage, homeSubPage = "for-you", onHomeSubPageChange, dashboardSubPage = "courses", onDashboardSubPageChange }: NavSidebarProps) {
   return (
     <div className="flex h-screen w-60 flex-col border-r border-border bg-card">
       {activePage === "home" && <HomeSidebar activeSubPage={homeSubPage} onSubPageChange={onHomeSubPageChange ?? (() => {})} />}
-      {activePage === "dashboard" && <DashboardSidebar />}
+      {activePage === "dashboard" && <DashboardSidebar activeSubPage={dashboardSubPage} onSubPageChange={onDashboardSubPageChange ?? (() => {})} />}
       {activePage === "learning" && <LearningSidebar />}
       {activePage === "events" && <EventsSidebar />}
       {activePage === "chat" && <ChatSidebar />}

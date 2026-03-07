@@ -1,15 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { IconSidebar, type PageId, type HomeSubPage } from "@/components/icon-sidebar"
+import { IconSidebar, type PageId, type HomeSubPage, type DashboardSubPage } from "@/components/icon-sidebar"
 import { NavSidebar } from "@/components/nav-sidebar"
-import { TrialBanner, TopBar, PageHeader } from "@/components/top-bar"
+import { PageHeader } from "@/components/top-bar"
 import { MainContent } from "@/components/main-content"
 import { LearningContent } from "@/components/learning-content"
 import { EventsContent } from "@/components/events-content"
 import { ChatContent } from "@/components/chat-content"
 import { AdminContent } from "@/components/admin-content"
-import { DashboardContent } from "@/components/dashboard-content"
+import { DashboardForYouContent } from "@/components/dashboard/for-you-content"
+import { DashboardCoursesContent } from "@/components/dashboard/courses-content"
+import { DashboardLearnersContent } from "@/components/dashboard/learners-content"
 import { AcademyContent } from "@/components/home/academy-content"
 import { MembersContent } from "@/components/home/members-content"
 import { AnnouncementsContent } from "@/components/home/announcements-content"
@@ -20,11 +22,15 @@ import { ResourcesContent } from "@/components/home/resources-content"
 export default function Page() {
   const [activePage, setActivePage] = useState<PageId>("home")
   const [homeSubPage, setHomeSubPage] = useState<HomeSubPage>("for-you")
+  const [dashboardSubPage, setDashboardSubPage] = useState<DashboardSubPage>("for-you")
 
   const handleNavigate = (page: PageId) => {
     setActivePage(page)
     if (page === "home") {
       setHomeSubPage("for-you")
+    }
+    if (page === "dashboard") {
+      setDashboardSubPage("for-you")
     }
   }
 
@@ -49,16 +55,27 @@ export default function Page() {
     }
   }
 
+  function renderDashboardContent() {
+    switch (dashboardSubPage) {
+      case "for-you":
+        return <DashboardForYouContent />
+      case "courses":
+        return <DashboardCoursesContent />
+      case "learners":
+        return <DashboardLearnersContent />
+      default:
+        return <DashboardForYouContent />
+    }
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <IconSidebar activePage={activePage} onNavigate={handleNavigate} />
-      <NavSidebar activePage={activePage} homeSubPage={homeSubPage} onHomeSubPageChange={setHomeSubPage} />
+      <NavSidebar activePage={activePage} homeSubPage={homeSubPage} onHomeSubPageChange={setHomeSubPage} dashboardSubPage={dashboardSubPage} onDashboardSubPageChange={setDashboardSubPage} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <TrialBanner />
-        <TopBar />
-        <PageHeader activePage={activePage} homeSubPage={homeSubPage} />
+        <PageHeader activePage={activePage} homeSubPage={homeSubPage} dashboardSubPage={dashboardSubPage} />
         {activePage === "home" && renderHomeContent()}
-        {activePage === "dashboard" && <DashboardContent />}
+        {activePage === "dashboard" && renderDashboardContent()}
         {activePage === "learning" && <LearningContent />}
         {activePage === "events" && <EventsContent />}
         {activePage === "chat" && <ChatContent />}

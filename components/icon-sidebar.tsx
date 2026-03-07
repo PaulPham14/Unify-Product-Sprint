@@ -11,6 +11,7 @@ import {
 
 export type PageId = "home" | "dashboard" | "learning" | "events" | "chat" | "admin"
 export type HomeSubPage = "for-you" | "academy" | "members" | "announcements" | "questions" | "member-events" | "resources"
+export type DashboardSubPage = "for-you" | "courses" | "learners"
 
 function FlatIcon({ iconClass }: { iconClass: string }) {
   return (

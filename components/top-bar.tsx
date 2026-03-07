@@ -22,34 +22,7 @@ import {
   Users,
   Info,
 } from "lucide-react"
-import type { PageId, HomeSubPage } from "./icon-sidebar"
-
-export function TrialBanner() {
-  return (
-    <div className="relative flex items-center justify-center gap-3 bg-primary/5 border-b border-border px-4 py-2 text-sm">
-      <div className="flex items-center gap-2">
-        <span className="text-amber-500">&#10022;</span>
-        <span>
-          <a href="#" className="font-semibold text-primary underline">
-            14 days left in your FREE trial.
-          </a>{" "}
-          <span className="text-foreground">Upgrade now or book a demo with our team.</span>
-        </span>
-      </div>
-      <div className="flex items-center gap-2">
-        <button className="rounded-lg border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors">
-          Book a Demo
-        </button>
-        <button className="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-          Choose a Plan
-        </button>
-      </div>
-      <button className="absolute right-4 text-muted-foreground hover:text-foreground">
-        <HelpCircle className="h-4 w-4" />
-      </button>
-    </div>
-  )
-}
+import type { PageId, HomeSubPage, DashboardSubPage } from "./icon-sidebar"
 
 export function TopBar() {
   return (
@@ -77,21 +50,19 @@ export function TopBar() {
 interface PageHeaderProps {
   activePage: PageId
   homeSubPage?: HomeSubPage
+  dashboardSubPage?: DashboardSubPage
 }
 
-export function PageHeader({ activePage, homeSubPage = "for-you" }: PageHeaderProps) {
+export function PageHeader({ activePage, homeSubPage = "for-you", dashboardSubPage = "courses" }: PageHeaderProps) {
   if (activePage === "home") {
     return <HomePageHeader subPage={homeSubPage} />
   }
 
+  if (activePage === "dashboard") {
+    return <DashboardPageHeader subPage={dashboardSubPage} />
+  }
+
   switch (activePage) {
-    case "dashboard":
-      return (
-        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
-          <i className="fi fi-rr-layout-fluid text-base text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Dashboard</span>
-        </div>
-      )
     case "learning":
       return (
         <div className="flex items-center justify-between border-b border-border px-6 py-3 bg-card">
@@ -150,6 +121,34 @@ export function PageHeader({ activePage, homeSubPage = "for-you" }: PageHeaderPr
             View Academy
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
+        </div>
+      )
+    default:
+      return null
+  }
+}
+
+function DashboardPageHeader({ subPage }: { subPage: DashboardSubPage }) {
+  switch (subPage) {
+    case "for-you":
+      return (
+        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
+          <Sparkles className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">For You</span>
+        </div>
+      )
+    case "courses":
+      return (
+        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
+          <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Courses</span>
+        </div>
+      )
+    case "learners":
+      return (
+        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Learners</span>
         </div>
       )
     default:
