@@ -9,11 +9,28 @@ import {
   Plus,
 } from "lucide-react"
 
-export type PageId = "home" | "learning" | "events" | "chat" | "admin"
+export type PageId = "home" | "dashboard" | "learning" | "events" | "chat" | "admin"
 export type HomeSubPage = "for-you" | "academy" | "members" | "announcements" | "questions" | "member-events" | "resources"
 
-const navItems: { icon: typeof Home; label: string; id: PageId }[] = [
+function FlatIcon({ iconClass }: { iconClass: string }) {
+  return (
+    <span className="flex h-5 w-5 items-center justify-center">
+      <i className={`fi ${iconClass} text-[18px] leading-none`} />
+    </span>
+  )
+}
+
+type NavItem = {
+  label: string
+  id: PageId
+} & (
+  | { icon: typeof Home; flaticon?: never }
+  | { flaticon: string; icon?: never }
+)
+
+const navItems: NavItem[] = [
   { icon: Home, label: "Home", id: "home" },
+  { flaticon: "fi-rr-layout-fluid", label: "Dashboard", id: "dashboard" },
   { icon: BookOpen, label: "Learning", id: "learning" },
   { icon: Calendar, label: "Events", id: "events" },
   { icon: MessageCircle, label: "Chat", id: "chat" },
@@ -43,7 +60,10 @@ export function IconSidebar({ activePage, onNavigate }: IconSidebarProps) {
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
-            <item.icon className="h-5 w-5" />
+            {item.icon
+              ? <item.icon className="h-5 w-5" />
+              : <FlatIcon iconClass={item.flaticon!} />
+            }
             <span>{item.label}</span>
           </button>
         ))}
