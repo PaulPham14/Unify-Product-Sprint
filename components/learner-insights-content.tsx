@@ -166,7 +166,9 @@ function LearnerInsightsContentInner() {
   const masteryScore = storedMastery != null ? storedMastery : Math.round(aggregateMastery * 100) / 100
   const riskBucket = selectedLearner?.riskBucket ?? selectedLearner?.riskLevel ?? ""
   const recalculateScores = useMutation(api.scores.recalculateScoresForUser)
+  const seedCohortMetrics = useMutation(api.seed.seedCohortLearnerMetrics)
   const [recalculating, setRecalculating] = useState(false)
+  const [seeding, setSeeding] = useState(false)
   const handleRecalculate = async () => {
     if (!selectedLearner?.userId) return
     setRecalculating(true)
@@ -174,6 +176,14 @@ function LearnerInsightsContentInner() {
       await recalculateScores({ userId: selectedLearner.userId })
     } finally {
       setRecalculating(false)
+    }
+  }
+  const handleSeedDemoData = async () => {
+    setSeeding(true)
+    try {
+      await seedCohortMetrics({ cohortId: INSTRUCTOR_COHORT_ID })
+    } finally {
+      setSeeding(false)
     }
   }
 
@@ -233,6 +243,14 @@ function LearnerInsightsContentInner() {
                 ))}
               </SelectContent>
             </Select>
+            <button
+              type="button"
+              onClick={handleSeedDemoData}
+              disabled={seeding}
+              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+            >
+              {seeding ? "Seeding…" : "Seed demo data"}
+            </button>
             {selectedLearnerId && selectedLearner?.userId && (
               <button
                 type="button"
@@ -247,8 +265,9 @@ function LearnerInsightsContentInner() {
         </div>
 
         {!selectedLearnerId ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-muted-foreground">
-            Select a learner to view insights.
+          <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 text-center text-muted-foreground">
+            <p className="text-sm">Select a learner to view insights.</p>
+            <p className="text-xs">No metrics yet? Click &quot;Seed demo data&quot; to populate task results and scores for all learners in this cohort.</p>
           </div>
         ) : (
           <>
