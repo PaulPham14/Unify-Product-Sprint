@@ -80,7 +80,7 @@ export function LearnerInsightsContent() {
 function LearnerInsightsContentInner() {
   const [selectedLearnerId, setSelectedLearnerId] = useState<Id<"user"> | "">("")
   const [selectedModuleId, setSelectedModuleId] = useState<string>("all")
-  const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(ALL_TRENDS)
+  const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(["Mastery"])
   const [chartMonth, setChartMonth] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
