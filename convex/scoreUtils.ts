@@ -36,6 +36,30 @@ export type ComputedScores = {
   riskBucket: string;
 };
 
+export function getRiskBucketForMasteryScore({
+  masteryScore,
+  daysSinceActive,
+  hasActivityData,
+}: {
+  masteryScore: number;
+  daysSinceActive: number;
+  hasActivityData: boolean;
+}) {
+  if (daysSinceActive > DISENGAGED_DAYS && hasActivityData) {
+    return "disengaged";
+  }
+  if (masteryScore >= BUCKET_HIGH) {
+    return "high_mastery";
+  }
+  if (masteryScore >= BUCKET_ON_TRACK) {
+    return "on_track";
+  }
+  if (masteryScore >= BUCKET_AT_RISK) {
+    return "at_risk";
+  }
+  return "disengaged";
+}
+
 export function computeScoresFromResults(
   results: ResultLike[],
   user: UserLike,
@@ -107,18 +131,11 @@ export function computeScoresFromResults(
     retentionScore * MASTERY_WEIGHTS.retention +
     behaviorScore * MASTERY_WEIGHTS.behavior;
 
-  let riskBucket: string;
-  if (daysSinceActive > DISENGAGED_DAYS && results.length > 0) {
-    riskBucket = "disengaged";
-  } else if (masteryScore >= BUCKET_HIGH) {
-    riskBucket = "high_mastery";
-  } else if (masteryScore >= BUCKET_ON_TRACK) {
-    riskBucket = "on_track";
-  } else if (masteryScore >= BUCKET_AT_RISK) {
-    riskBucket = "at_risk";
-  } else {
-    riskBucket = "disengaged";
-  }
+  const riskBucket = getRiskBucketForMasteryScore({
+    masteryScore,
+    daysSinceActive,
+    hasActivityData: results.length > 0,
+  });
 
   return {
     applicationScore: Math.round(applicationScore * 100) / 100,

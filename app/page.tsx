@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { IconSidebar, type PageId, type HomeSubPage, type DashboardSubPage } from "@/components/icon-sidebar"
 import { NavSidebar } from "@/components/nav-sidebar"
 import { PageHeader } from "@/components/top-bar"
@@ -17,20 +18,56 @@ import { AnnouncementsContent } from "@/components/home/announcements-content"
 import { QuestionsContent } from "@/components/home/questions-content"
 import { MemberEventsContent } from "@/components/home/member-events-content"
 import { ResourcesContent } from "@/components/home/resources-content"
+import { buildDashboardHref, parseDashboardRouteState } from "@/lib/dashboard-route-state"
 
-export default function Page() {
-  const [activePage, setActivePage] = useState<PageId>("home")
-  const [homeSubPage, setHomeSubPage] = useState<HomeSubPage>("for-you")
-  const [dashboardSubPage, setDashboardSubPage] = useState<DashboardSubPage>("for-you")
+function RootPageContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const routeState = useMemo(
+    () => parseDashboardRouteState(searchParams),
+    [searchParams]
+  )
+  const [activePage, setActivePage] = useState<PageId>(routeState.page)
+  const [homeSubPage, setHomeSubPage] = useState<HomeSubPage>(routeState.homeSubPage)
+  const [dashboardSubPage, setDashboardSubPage] = useState<DashboardSubPage>(routeState.dashboardSubPage)
+
+  useEffect(() => {
+    setActivePage(routeState.page)
+    setHomeSubPage(routeState.homeSubPage)
+    setDashboardSubPage(routeState.dashboardSubPage)
+  }, [routeState])
+
+  const navigateToRootState = (href: string) => {
+    router.replace(href)
+  }
 
   const handleNavigate = (page: PageId) => {
     setActivePage(page)
     if (page === "home") {
       setHomeSubPage("for-you")
-    }
-    if (page === "dashboard") {
+      navigateToRootState(buildDashboardHref({ page: "home", homeSubPage: "for-you" }))
+    } else if (page === "dashboard") {
       setDashboardSubPage("for-you")
+      navigateToRootState(
+        buildDashboardHref({ page: "dashboard", dashboardSubPage: "for-you" })
+      )
+    } else {
+      navigateToRootState(buildDashboardHref({ page }))
     }
+  }
+
+  const handleHomeSubPageChange = (subPage: HomeSubPage) => {
+    setActivePage("home")
+    setHomeSubPage(subPage)
+    navigateToRootState(buildDashboardHref({ page: "home", homeSubPage: subPage }))
+  }
+
+  const handleDashboardSubPageChange = (subPage: DashboardSubPage) => {
+    setActivePage("dashboard")
+    setDashboardSubPage(subPage)
+    navigateToRootState(
+      buildDashboardHref({ page: "dashboard", dashboardSubPage: subPage })
+    )
   }
 
   function renderHomeContent() {
@@ -59,7 +96,7 @@ export default function Page() {
       case "courses":
         return <DashboardCoursesContent />
       case "learners":
-        return <LearnerInsightsContent />
+        return <LearnerInsightsContent initialLearnerId={routeState.learnerId} />
       default:
         return <DashboardForYouContent />
     }
@@ -68,7 +105,13 @@ export default function Page() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <IconSidebar activePage={activePage} onNavigate={handleNavigate} />
-      <NavSidebar activePage={activePage} homeSubPage={homeSubPage} onHomeSubPageChange={setHomeSubPage} dashboardSubPage={dashboardSubPage} onDashboardSubPageChange={setDashboardSubPage} />
+      <NavSidebar
+        activePage={activePage}
+        homeSubPage={homeSubPage}
+        onHomeSubPageChange={handleHomeSubPageChange}
+        dashboardSubPage={dashboardSubPage}
+        onDashboardSubPageChange={handleDashboardSubPageChange}
+      />
       <div className="flex flex-1 flex-col overflow-hidden">
         <PageHeader activePage={activePage} homeSubPage={homeSubPage} dashboardSubPage={dashboardSubPage} />
         {activePage === "home" && renderHomeContent()}
@@ -79,5 +122,19 @@ export default function Page() {
         {activePage === "admin" && <AdminContent />}
       </div>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+          Loading dashboard…
+        </div>
+      }
+    >
+      <RootPageContent />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -59,7 +59,11 @@ function masteryPillStyle(aggregate: number): string {
   return "bg-[#ffddd9] text-[#d1001f]"
 }
 
-export function LearnerInsightsContent() {
+export function LearnerInsightsContent({
+  initialLearnerId = null,
+}: {
+  initialLearnerId?: string | null
+}) {
   const convexAvailable = useConvexAvailable()
   if (!convexAvailable) {
     return (
@@ -75,11 +79,17 @@ export function LearnerInsightsContent() {
       </div>
     )
   }
-  return <LearnerInsightsContentInner />
+  return <LearnerInsightsContentInner initialLearnerId={initialLearnerId} />
 }
 
-function LearnerInsightsContentInner() {
-  const [selectedLearnerId, setSelectedLearnerId] = useState<Id<"user"> | "">("")
+function LearnerInsightsContentInner({
+  initialLearnerId,
+}: {
+  initialLearnerId?: string | null
+}) {
+  const [selectedLearnerId, setSelectedLearnerId] = useState<Id<"user"> | "">(
+    initialLearnerId ? (initialLearnerId as Id<"user">) : ""
+  )
   const [selectedModuleId, setSelectedModuleId] = useState<string>("all")
   const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(["Mastery"])
   const [progressRange, setProgressRange] = useState<ProgressRange>("all")
@@ -107,6 +117,11 @@ function LearnerInsightsContentInner() {
     if (!cohortLearners) return []
     return cohortLearners.filter((u) => u.role === "learner")
   }, [cohortLearners])
+
+  useEffect(() => {
+    if (!initialLearnerId) return
+    setSelectedLearnerId(initialLearnerId as Id<"user">)
+  }, [initialLearnerId])
 
   const masteryProgressData = useMemo(() => {
     if (!scoreHistory?.length) return []

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
+import { buildCohortDiagnosisHref } from "@/lib/cohort-diagnosis"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
@@ -19,13 +20,6 @@ const DIAGNOSIS_COLORS = {
 }
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
-
-const RISK_BUCKET_MAP: Record<string, string> = {
-  "High Mastery": "high_mastery",
-  "On Track": "on_track",
-  "At Risk": "at_risk",
-  "Disengaged": "disengaged",
-}
 
 const MASTERY_GAUGE_RADIUS = 62
 const MASTERY_GAUGE_START_ANGLE = 150
@@ -90,13 +84,15 @@ function MonthSelector() {
 }
 
 function DiagnosisHoverCard({
+  courseId,
   segmentName,
   studentCount,
 }: {
+  courseId: string
   segmentName: string
   studentCount: number
 }) {
-  const href = `/dashboard/cohort-diagnosis?segment=${encodeURIComponent(segmentName)}`
+  const href = buildCohortDiagnosisHref({ courseId, segment: segmentName })
   return (
     <div className="flex w-full min-w-[280px] max-w-[312px] flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 shadow-lg">
       <div className="flex w-full items-end justify-between leading-normal text-black">
@@ -141,7 +137,12 @@ function CohortDiagnosisChart({ course, learners }: { course: CourseDoc; learner
   }, [hoveredSegment, data])
 
   const handleSegmentClick = (segmentName: string) => {
-    router.push(`/dashboard/cohort-diagnosis?segment=${encodeURIComponent(segmentName)}`)
+    router.push(
+      buildCohortDiagnosisHref({
+        courseId: course.courseId,
+        segment: segmentName,
+      })
+    )
   }
 
   return (
@@ -193,6 +194,7 @@ function CohortDiagnosisChart({ course, learners }: { course: CourseDoc; learner
                 onMouseLeave={() => setHoveredSegment(null)}
               >
                 <DiagnosisHoverCard
+                  courseId={course.courseId}
                   segmentName={hoveredData.segmentName}
                   studentCount={hoveredData.studentCount}
                 />
