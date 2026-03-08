@@ -155,6 +155,18 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_cohortId_moduleId_calculatedAt", ["cohortId", "moduleId", "calculatedAt"]),
 
+  module_insights: defineTable({
+    courseId: v.string(),
+    moduleId: v.string(),
+    moduleLabel: v.string(),
+    courseTitle: v.string(),
+    /** Module-level mastery score (0–100) for this module. */
+    averageScore: v.float64(),
+    /** Cohort-level overall risk label for "Cohort Performance" (Low / Moderate / High). */
+    cohortRiskBucket: v.string(),
+  })
+    .index("by_courseId", ["courseId"]),
+
   user: defineTable({
     applicationScore: v.optional(v.float64()),
     behavioralScore: v.optional(v.float64()),

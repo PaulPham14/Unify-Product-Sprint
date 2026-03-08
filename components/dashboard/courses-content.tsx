@@ -53,6 +53,9 @@ type CourseDoc = NonNullable<
 type AssessmentList = NonNullable<
   ReturnType<typeof useQuery<typeof api.dashboardCourses.listAssessments>>
 >
+type ModuleInsightList = NonNullable<
+  ReturnType<typeof useQuery<typeof api.dashboardCourses.listModuleInsights>>
+>
 
 function formatDate(ts: number) {
   const d = new Date(ts)
@@ -311,6 +314,134 @@ function MasteryGauge({ course }: { course: CourseDoc }) {
   )
 }
 
+const MODULE_INSIGHTS_ROWS_PER_PAGE = 6
+
+function CohortRiskPill({ riskBucket }: { riskBucket: string }) {
+  const risk = riskBucket === "Low" ? "low" : riskBucket === "High" ? "high" : "moderate"
+  const bg = risk === "low" ? "#e1f3de" : risk === "high" ? "#ffddd9" : "#ffebda"
+  const text = risk === "low" ? "#259800" : risk === "high" ? "#d1001f" : "#cf5d00"
+  const label = risk === "low" ? "Risk: Low" : risk === "high" ? "Risk: High" : "Risk: Moderate"
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-[10px] py-[5px] text-xs font-medium"
+      style={{ backgroundColor: bg, color: text }}
+    >
+      {label}
+    </span>
+  )
+}
+
+function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undefined }) {
+  const list = insights ?? []
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(list.length / MODULE_INSIGHTS_ROWS_PER_PAGE))
+  const pageRows = list.slice(
+    (page - 1) * MODULE_INSIGHTS_ROWS_PER_PAGE,
+    page * MODULE_INSIGHTS_ROWS_PER_PAGE
+  )
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "...")[] = []
+    for (let i = 1; i <= Math.min(5, totalPages); i++) pages.push(i)
+    if (totalPages > 6) pages.push("...")
+    if (totalPages > 5) pages.push(totalPages)
+    return pages
+  }, [totalPages])
+  const isEmpty = list.length === 0
+
+  return (
+    <div className="flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
+      <div className="py-2">
+        <span className="text-sm font-medium text-black">Module Insights</span>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex w-full items-start rounded-[4px] bg-[#5b5b5b] py-[5px]">
+          <div className="flex flex-1 items-center justify-center">
+            <span className="text-xs font-bold text-white">Course/Module</span>
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <span className="text-xs font-bold text-white">Cohort Performance</span>
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <span className="text-xs font-bold text-white">Average Score</span>
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <span className="text-xs font-bold text-white">Insights</span>
+          </div>
+        </div>
+        {isEmpty ? (
+          <div className="flex h-[60px] w-full items-center justify-center rounded-[4px] bg-[#f9f9f9]">
+            <span className="text-xs text-[#5b5b5b]">No module insights yet. Seed course data to populate.</span>
+          </div>
+        ) : (
+          pageRows.map((row) => (
+            <div key={row._id} className="flex h-[27px] w-full items-center rounded-[4px]">
+              <div className="flex flex-1 items-center px-[10px]">
+                <span className="truncate text-xs text-black">
+                  {row.courseTitle}/ {row.moduleLabel}
+                </span>
+              </div>
+              <div className="flex flex-1 items-center justify-center">
+                <CohortRiskPill riskBucket={row.cohortRiskBucket} />
+              </div>
+              <div className="flex flex-1 items-center justify-center">
+                <span className="text-xs font-medium text-black">{Math.round(row.averageScore)}%</span>
+              </div>
+              <div className="flex flex-1 items-center justify-center">
+                <button type="button" className="text-xs font-medium text-[#9727fc] underline hover:no-underline">
+                  View Insights
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+        <div className="flex items-center gap-[156px]">
+          <div className="flex items-center gap-[10px]">
+            <span className="text-[10px] font-medium text-black">Show</span>
+            <div className="flex h-[27px] items-center gap-[10px] rounded-[4px] border border-[#afafaf] bg-white px-[10px]">
+              <span className="text-[10px] font-medium text-black">{MODULE_INSIGHTS_ROWS_PER_PAGE}</span>
+              <ChevronDown className="h-4 w-4 text-black" />
+            </div>
+            <span className="text-[10px] font-medium text-black">Row</span>
+          </div>
+          <div className="flex items-center gap-[10px]">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="flex size-[34px] items-center justify-center rounded bg-[#f9f9f9] disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4 text-black" />
+            </button>
+            <div className="flex items-center">
+              {pageNumbers.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => typeof p === "number" && setPage(p)}
+                  className="flex w-[35px] items-center justify-center rounded p-[10px]"
+                >
+                  <span
+                    className={`text-[10px] ${
+                      p === page ? "font-bold text-[#9727fc]" : "font-medium text-[#5b5b5b]"
+                    }`}
+                  >
+                    {p}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="flex size-[34px] items-center justify-center rounded bg-[#f2f2f2] disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4 text-black" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AssessmentTable({ assessments }: { assessments: AssessmentList }) {
   const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(assessments.length / ROWS_PER_PAGE))
@@ -474,6 +605,10 @@ function DashboardCoursesContentInner() {
     api.dashboardCourses.listAssessments,
     activeCourseId ? { courseId: activeCourseId } : "skip"
   )
+  const moduleInsights = useQuery(
+    api.dashboardCourses.listModuleInsights,
+    activeCourseId ? { courseId: activeCourseId } : "skip"
+  )
 
   if (!courses) {
     return (
@@ -607,6 +742,7 @@ function DashboardCoursesContentInner() {
               <CohortDiagnosisChart course={course} learners={cohortLearners as LearnerDoc[] | undefined} />
               <MasteryGauge course={course} />
             </div>
+            <ModuleInsightsTable insights={moduleInsights ?? undefined} />
             <AssessmentTable assessments={assessments} />
           </div>
         </div>

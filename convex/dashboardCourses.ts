@@ -28,3 +28,14 @@ export const listAssessments = query({
     return rows.sort((a, b) => a.order - b.order);
   },
 });
+
+export const listModuleInsights = query({
+  args: { courseId: v.string() },
+  handler: async (ctx, { courseId }) => {
+    const rows = await ctx.db
+      .query("module_insights")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .collect();
+    return rows.sort((a, b) => a.moduleLabel.localeCompare(b.moduleLabel, undefined, { numeric: true }));
+  },
+});

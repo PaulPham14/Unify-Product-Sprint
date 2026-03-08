@@ -27,6 +27,9 @@ export const seed = mutation({
       if (doc.conceptId && seededConceptIds.has(doc.conceptId)) await ctx.db.delete(doc._id);
     }
 
+    const existingModuleInsights = await ctx.db.query("module_insights").collect();
+    for (const doc of existingModuleInsights) await ctx.db.delete(doc._id);
+
     // Seed courses
     for (const c of coursesData) {
       await ctx.db.insert("courses", c);
@@ -68,11 +71,17 @@ export const seed = mutation({
       await ctx.db.insert("course_assessments", a);
     }
 
+    // Seed module insights (average score per module; risk Low/Moderate/High; consistent with course masteryScore)
+    for (const row of moduleInsightsData) {
+      await ctx.db.insert("module_insights", row);
+    }
+
     return {
       courses: coursesData.length,
       modules: moduleCount,
       concepts: conceptCount,
       assessments: allAssessments.length,
+      moduleInsights: moduleInsightsData.length,
     };
   },
 });
@@ -317,4 +326,25 @@ const taxAssessments = [
   { courseId: "course_unify_taxes", assessmentType: "Assignment 1", moduleLesson: "Income & Deductions/ Module 2", dueDate: new Date("2026-02-20").getTime(), status: "done", averageScore: 52, order: 4 },
   { courseId: "course_unify_taxes", assessmentType: "Quiz 2", moduleLesson: "Income & Deductions/ Module 2", dueDate: new Date("2026-02-14").getTime(), status: "done", averageScore: 64, order: 5 },
   { courseId: "course_unify_taxes", assessmentType: "Quiz 1", moduleLesson: "Tax Fundamentals/ Module 1", dueDate: new Date("2026-02-07").getTime(), status: "done", averageScore: 71, order: 6 },
+];
+
+// Module-level mastery score (%) per module; cohort-level risk is same for all modules in a course.
+// Cohort risk from course health: cohortHealthScore >= 80 → Low, >= 60 → Moderate, else High.
+// Module averageScore chosen so course-level mastery (mean of modules) aligns with coursesData.masteryScore.
+const moduleInsightsData = [
+  // AI Fundamentals: cohort health 72 → Moderate; course mastery 75; module mastery % per module
+  { courseId: "course_ai_fundamentals", moduleId: "mod_ai_01", moduleLabel: "Module 1", courseTitle: "AI Fundamentals", averageScore: 81, cohortRiskBucket: "Moderate" },
+  { courseId: "course_ai_fundamentals", moduleId: "mod_ai_02", moduleLabel: "Module 2", courseTitle: "AI Fundamentals", averageScore: 83, cohortRiskBucket: "Moderate" },
+  { courseId: "course_ai_fundamentals", moduleId: "mod_ai_03", moduleLabel: "Module 3", courseTitle: "AI Fundamentals", averageScore: 62, cohortRiskBucket: "Moderate" },
+  { courseId: "course_ai_fundamentals", moduleId: "mod_ai_04", moduleLabel: "Module 4", courseTitle: "AI Fundamentals", averageScore: 70, cohortRiskBucket: "Moderate" },
+  { courseId: "course_ai_fundamentals", moduleId: "mod_ai_05", moduleLabel: "Module 5", courseTitle: "AI Fundamentals", averageScore: 79, cohortRiskBucket: "Moderate" },
+  // Zoom: cohort health 85 → Low; course mastery 82
+  { courseId: "course_zoom", moduleId: "mod_zoom_01", moduleLabel: "Module 1", courseTitle: "Zoom", averageScore: 85, cohortRiskBucket: "Low" },
+  { courseId: "course_zoom", moduleId: "mod_zoom_02", moduleLabel: "Module 2", courseTitle: "Zoom", averageScore: 91, cohortRiskBucket: "Low" },
+  { courseId: "course_zoom", moduleId: "mod_zoom_03", moduleLabel: "Module 3", courseTitle: "Zoom", averageScore: 70, cohortRiskBucket: "Low" },
+  // Unify Taxes: cohort health 61 → High; course mastery 58
+  { courseId: "course_unify_taxes", moduleId: "mod_tax_01", moduleLabel: "Module 1", courseTitle: "Unify Taxes", averageScore: 71, cohortRiskBucket: "High" },
+  { courseId: "course_unify_taxes", moduleId: "mod_tax_02", moduleLabel: "Module 2", courseTitle: "Unify Taxes", averageScore: 58, cohortRiskBucket: "High" },
+  { courseId: "course_unify_taxes", moduleId: "mod_tax_03", moduleLabel: "Module 3", courseTitle: "Unify Taxes", averageScore: 52, cohortRiskBucket: "High" },
+  { courseId: "course_unify_taxes", moduleId: "mod_tax_04", moduleLabel: "Module 4", courseTitle: "Unify Taxes", averageScore: 51, cohortRiskBucket: "High" },
 ];
