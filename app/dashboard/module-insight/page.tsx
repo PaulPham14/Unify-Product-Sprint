@@ -6,6 +6,8 @@ import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
+import { DashboardRouteShell } from "@/components/dashboard/dashboard-route-shell"
+import { buildDashboardHref } from "@/lib/dashboard-route-state"
 import { ChevronDown, ChevronLeft, ExternalLink } from "lucide-react"
 import {
   Area,
@@ -144,11 +146,13 @@ function ModuleInsightContent() {
     router.replace(`/dashboard/module-insight?${params.toString()}`)
   }
 
+  const backHref = buildDashboardHref({ page: "dashboard", dashboardSubPage: "courses" })
+
   if (!convexAvailable) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white p-6">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">Convex is not configured.</p>
-        <Link href="/" className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
+        <Link href={backHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
           Back to Dashboard
         </Link>
       </div>
@@ -157,9 +161,9 @@ function ModuleInsightContent() {
 
   if (!courseId || !moduleId) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white p-6">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">Missing course or module. Open this page from View Insights on the Courses page.</p>
-        <Link href="/" className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
+        <Link href={backHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
           Back to Dashboard
         </Link>
       </div>
@@ -168,7 +172,7 @@ function ModuleInsightContent() {
 
   if (insight === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex flex-1 items-center justify-center bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">Loading…</p>
       </div>
     )
@@ -176,9 +180,9 @@ function ModuleInsightContent() {
 
   if (insight === null) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white p-6">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">Module insight not found.</p>
-        <Link href="/" className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
+        <Link href={backHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
           Back to Dashboard
         </Link>
       </div>
@@ -188,17 +192,15 @@ function ModuleInsightContent() {
   const masteryPct = Math.round(insight.averageScore)
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="border-b border-[#eee] bg-white px-6 py-4">
+    <div className="flex-1 overflow-y-auto bg-white">
+      <div className="mx-auto max-w-4xl px-6 py-8">
         <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-xs font-medium text-[#5b5b5b] hover:text-black"
+          href={backHref}
+          className="mb-6 inline-flex items-center gap-1 text-xs font-medium text-[#5b5b5b] hover:text-black"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Dashboard
         </Link>
-      </div>
-      <div className="mx-auto max-w-4xl px-6 py-8">
         <div className="flex flex-col gap-8">
           <header className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-4">
@@ -418,14 +420,16 @@ function ModuleInsightContent() {
 
 export default function ModuleInsightPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-white">
-          <p className="text-sm text-[#5b5b5b]">Loading…</p>
-        </div>
-      }
-    >
-      <ModuleInsightContent />
-    </Suspense>
+    <DashboardRouteShell dashboardSubPage="courses">
+      <Suspense
+        fallback={
+          <div className="flex flex-1 items-center justify-center bg-white p-6">
+            <p className="text-sm text-[#5b5b5b]">Loading…</p>
+          </div>
+        }
+      >
+        <ModuleInsightContent />
+      </Suspense>
+    </DashboardRouteShell>
   )
 }
