@@ -15,7 +15,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { format } from "date-fns"
-import { MoreHorizontal, ExternalLink } from "lucide-react"
+import { MoreHorizontal, ExternalLink, ChevronDown } from "lucide-react"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
 
@@ -27,14 +27,14 @@ function impactFromScore(score: number): ImpactLevel {
   return "negative"
 }
 
-function impactClass(impact: ImpactLevel): string {
+function impactBadgeStyle(impact: ImpactLevel): string {
   switch (impact) {
     case "positive":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+      return "bg-[#e1f3de] text-[#259800]"
     case "moderate":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+      return "bg-[#ffebda] text-[#cf5d00]"
     case "negative":
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+      return "bg-[#ffddd9] text-[#d1001f]"
   }
 }
 
@@ -50,24 +50,10 @@ function confidenceLabel(aggregate: number): string {
   return "Low"
 }
 
-function riskBucketLabel(bucket: string): string {
-  switch (bucket) {
-    case "high_mastery": return "High Mastery"
-    case "on_track": return "On Track"
-    case "at_risk": return "At Risk"
-    case "disengaged": return "Disengaged"
-    default: return ""
-  }
-}
-
-function riskBucketClass(bucket: string): string {
-  switch (bucket) {
-    case "high_mastery": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-    case "on_track": return "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
-    case "at_risk": return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-    case "disengaged": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-    default: return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-  }
+function masteryPillStyle(aggregate: number): string {
+  if (aggregate >= 80) return "bg-[#e1f3de] text-[#259800]"
+  if (aggregate >= 50) return "bg-[#ffebda] text-[#cf5d00]"
+  return "bg-[#ffddd9] text-[#d1001f]"
 }
 
 export function LearnerInsightsContent() {
@@ -165,7 +151,6 @@ function LearnerInsightsContentInner() {
   }, [storedMastery, applicationScore, retrievalScore, retentionScore, behaviourScore])
   const displayMastery = Math.min(100, Math.max(0, Math.round(aggregateMastery * 100) / 100))
   const masteryScore = storedMastery != null ? storedMastery : Math.round(aggregateMastery * 100) / 100
-  const riskBucket = selectedLearner?.riskBucket ?? selectedLearner?.riskLevel ?? ""
   const recalculateScores = useMutation(api.scores.recalculateScoresForUser)
   const seedCohortMetrics = useMutation(api.seed.seedCohortLearnerMetrics)
   const [recalculating, setRecalculating] = useState(false)
@@ -316,97 +301,103 @@ function LearnerInsightsContentInner() {
               </div>
             </section>
 
-            {/* Big overall card: Mastery Score summary on top, line, then 4 breakdown cards */}
-            <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-              {/* Mastery Score card on top: left = title + gauge + labels, right = month + % + line + aggregate + pills */}
-              <div className="rounded-lg border border-border bg-muted/20 p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Mastery Score</span>
-                  <Select value={chartMonth} onValueChange={setChartMonth}>
-                    <SelectTrigger className="h-8 w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {monthOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-start gap-6">
-                  {/* Score graph (gauge) */}
-                  <div className="relative h-28 w-28 shrink-0">
-                    <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+            {/* Mastery Score — exact Figma layout */}
+            <section className="flex flex-col items-center gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
+              {/* Title & month selector */}
+              <div className="flex w-full items-center justify-between">
+                <span className="text-[14px] font-medium text-black">Mastery Score</span>
+                <Select value={chartMonth} onValueChange={setChartMonth}>
+                  <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
+                    <SelectValue />
+                    <ChevronDown className="h-5 w-5 shrink-0 text-black" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Gauge + breakdown + pills row */}
+              <div className="flex w-full items-end justify-between">
+                <div className="flex items-center gap-8">
+                  {/* Gauge */}
+                  <div className="relative h-[166px] w-[168px] shrink-0">
+                    <svg className="h-full w-full" viewBox="0 0 168 166" fill="none">
                       <path
-                        className="text-muted stroke-[2.5]"
+                        d="M 20 140 A 72 72 0 1 1 148 140"
+                        stroke="#eee"
+                        strokeWidth="14"
+                        strokeLinecap="round"
                         fill="none"
-                        stroke="currentColor"
-                        strokeDasharray="100"
-                        d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
                       />
                       <path
-                        className="text-primary stroke-[2.5]"
-                        fill="none"
-                        strokeDasharray={`${displayMastery} 100`}
+                        d="M 20 140 A 72 72 0 1 1 148 140"
+                        stroke="#9727fc"
+                        strokeWidth="14"
                         strokeLinecap="round"
-                        stroke="currentColor"
-                        d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                        fill="none"
+                        strokeDasharray={`${(displayMastery / 100) * 330} 330`}
                       />
                     </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-primary">{Math.round(displayMastery)}</span>
-                      <span className="text-xs text-muted-foreground">out of 100</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
+                      <span className="text-[30px] font-bold text-[#9727fc]">{Math.round(displayMastery)}</span>
+                      <span className="text-[10px] text-black">out of 100</span>
                     </div>
                   </div>
-                  {/* Score breakdown right next to the graph */}
-                  <div className="flex flex-col gap-1 text-sm">
-                    <div className="flex justify-between gap-6">
-                      <span className="text-muted-foreground">Application</span>
-                      <span className="font-medium text-primary">40%</span>
+
+                  {/* Breakdown column */}
+                  <div className="flex w-[192px] flex-col items-end gap-2.5">
+                    <div className="flex w-full items-center justify-between text-[12px]">
+                      <span className="text-black">Application</span>
+                      <span className="font-medium text-[#9727fc]">40%</span>
                     </div>
-                    <div className="flex justify-between gap-6">
-                      <span className="text-muted-foreground">Retrieval</span>
-                      <span className="font-medium text-primary">30%</span>
+                    <div className="flex w-full items-center justify-between text-[12px]">
+                      <span className="text-black">Retrieval</span>
+                      <span className="font-medium text-[#9727fc]">30%</span>
                     </div>
-                    <div className="flex justify-between gap-6">
-                      <span className="text-muted-foreground">Retention</span>
-                      <span className="font-medium text-primary">20%</span>
+                    <div className="flex w-full items-center justify-between text-[12px]">
+                      <span className="text-black">Retention</span>
+                      <span className="font-medium text-[#9727fc]">20%</span>
                     </div>
-                    <div className="flex justify-between gap-6">
-                      <span className="text-muted-foreground">Behaviour</span>
-                      <span className="font-medium text-primary">10%</span>
+                    <div className="flex w-full items-center justify-between text-[12px]">
+                      <span className="text-black">Behaviour</span>
+                      <span className="font-medium text-[#9727fc]">10%</span>
                     </div>
-                    <hr className="my-2 border-border" />
-                    <div>
-                      <span className="font-semibold text-foreground">{Math.min(100, Math.max(0, Math.round(masteryScore)))}</span>
-                      <span className="text-muted-foreground"> out of 100</span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className={`rounded-md px-2 py-1 text-xs font-medium ${impactClass(impactFromScore(aggregateMastery))}`}>
-                        {masteryLabel(aggregateMastery)}
-                      </span>
-                      <span className={`rounded-md px-2 py-1 text-xs font-medium ${riskBucketClass(riskBucket)}`}>
-                        {riskBucketLabel(riskBucket) || `Confidence: ${confidenceLabel(aggregateMastery)}`}
-                      </span>
+                    <hr className="w-full border-[#eee]" />
+                    <div className="flex w-[48px] flex-col items-end text-black">
+                      <span className="text-[14px] font-bold">{Math.min(100, Math.max(0, Math.round(masteryScore)))}</span>
+                      <span className="text-[10px]">out of 100</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Mastery + confidence pills */}
+                <div className="flex items-center gap-4">
+                  <span className={`rounded-full px-2.5 py-[5px] text-[12px] font-medium ${masteryPillStyle(aggregateMastery)}`}>
+                    {masteryLabel(aggregateMastery)}
+                  </span>
+                  <span className={`rounded-full px-2.5 py-[5px] text-[12px] font-medium ${masteryPillStyle(aggregateMastery)}`}>
+                    Confidence: {confidenceLabel(aggregateMastery)}
+                  </span>
                 </div>
               </div>
 
-              {/* Line under mastery summary */}
-              <hr className="my-6 border-border" />
+              {/* Full-width separator */}
+              <hr className="w-full border-[#eee]" />
 
-              {/* 4 breakdown cards (2x2) */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* 2x2 breakdown cards — row 1 */}
+              <div className="flex w-full gap-4">
                 <InsightCard
                   title="Retrieval Practice"
                   score={retrievalScore}
                   observations={[
                     retrievalScore ? `Quiz accuracy: ${Math.min(100, Math.round(retrievalScore * 0.95))}%` : "Quiz accuracy: —",
                     "Retry attempts: " + (retrievalScore < 60 ? "High" : retrievalScore < 80 ? "Moderate" : "Low"),
-                    "Response time: " + (retrievalScore < 50 ? "Slow" : "Normal"),
+                    "Slow response time",
                   ]}
                 />
                 <InsightCard
@@ -417,11 +408,15 @@ function LearnerInsightsContentInner() {
                     "Assignment performance: " + (applicationScore >= 70 ? "consistent" : "variable"),
                   ]}
                 />
+              </div>
+
+              {/* 2x2 breakdown cards — row 2 */}
+              <div className="flex w-full gap-4">
                 <InsightCard
                   title="Retention"
                   score={retentionScore}
                   observations={[
-                    retentionScore < 65 ? "Week-over-week recall drop" : "Stable recall",
+                    retentionScore < 65 ? "Week 2 recall drop" : "Stable recall",
                     retentionScore < 60 ? "Reinforcement missing" : "Reinforcement on track",
                   ]}
                 />
@@ -429,8 +424,8 @@ function LearnerInsightsContentInner() {
                   title="Learning Behaviour"
                   score={behaviourScore}
                   observations={[
-                    "Video replays: " + (behaviourScore >= 70 ? "high" : "moderate"),
-                    "Discussion engagement: " + (behaviourScore >= 65 ? "good" : "low"),
+                    "Video replays " + (behaviourScore >= 70 ? "high" : "moderate"),
+                    "Discussion engagement " + (behaviourScore >= 65 ? "good" : "low"),
                   ]}
                 />
               </div>
@@ -474,26 +469,27 @@ function InsightCard({
   const displayScore = Math.min(100, Math.max(0, Math.round(score)))
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-medium text-foreground">{title}</span>
-        <span className={`rounded px-2 py-0.5 text-xs font-medium ${impactClass(impact)}`}>
+    <div className="flex w-full flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
+      <div className="flex w-full items-center justify-between">
+        <span className="text-[14px] font-medium text-black">{title}</span>
+      </div>
+      <div className="flex w-full items-start justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="text-[30px] font-bold text-black">{displayScore}</span>
+          <span className="text-[14px] text-black">out of 100</span>
+        </div>
+        <span className={`rounded-full px-2.5 py-[5px] text-[12px] font-medium ${impactBadgeStyle(impact)}`}>
           Impact: {impact === "positive" ? "Positive" : impact === "moderate" ? "Moderate" : "Negative"}
         </span>
       </div>
-      <p className="mb-3 text-2xl font-semibold text-foreground">
-        {displayScore} <span className="text-sm font-normal text-muted-foreground">out of 100</span>
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {observations.map((obs, i) => (
-          <span
-            key={i}
-            className="rounded-lg bg-muted/80 px-2.5 py-1.5 text-xs text-muted-foreground"
-          >
-            {obs}
-          </span>
-        ))}
-      </div>
+      {observations.map((obs, i) => (
+        <div
+          key={i}
+          className="flex w-full items-center rounded-[14px] bg-[#eee] p-2.5"
+        >
+          <span className="text-[12px] font-medium text-black">{obs}</span>
+        </div>
+      ))}
     </div>
   )
 }
