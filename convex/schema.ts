@@ -90,6 +90,19 @@ export default defineSchema({
     .index("by_conceptId", ["conceptId"])
     .index("by_moduleId", ["moduleId"]),
 
+  score_history: defineTable({
+    userId: v.string(),
+    applicationScore: v.float64(),
+    comprehensionScore: v.float64(),
+    retentionScore: v.float64(),
+    behavioralScore: v.float64(),
+    masteryScore: v.float64(),
+    riskBucket: v.string(),
+    calculatedAt: v.float64(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_calculatedAt", ["userId", "calculatedAt"]),
+
   user: defineTable({
     applicationScore: v.optional(v.float64()),
     behavioralScore: v.optional(v.float64()),

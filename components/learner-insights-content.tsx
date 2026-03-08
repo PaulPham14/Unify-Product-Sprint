@@ -93,8 +93,8 @@ function LearnerInsightsContentInner() {
     api.users.get,
     selectedLearnerId ? { id: selectedLearnerId } : "skip"
   )
-  const taskResults = useQuery(
-    api.taskResults.listByUser,
+  const scoreHistory = useQuery(
+    api.scoreHistory.listByUser,
     selectedLearner?.userId ? { userId: selectedLearner.userId } : "skip"
   )
 
@@ -103,40 +103,18 @@ function LearnerInsightsContentInner() {
     return cohortLearners.filter((u) => u.role === "learner")
   }, [cohortLearners])
 
-  const lessonProgressData = useMemo(() => {
-    if (!taskResults?.length || !selectedLearner?.userId) return []
-    const [year, month] = chartMonth.split("-").map(Number)
-    const start = new Date(year, month - 1, 1).getTime() / 1000
-    const end = new Date(year, month, 0, 23, 59, 59).getTime() / 1000
-    const filtered = taskResults.filter(
-      (r) => r.completedAt >= start && r.completedAt <= end && (selectedModuleId === "all" || r.moduleId === selectedModuleId)
-    )
-    const weekStarts: Record<number, { quizzes: number[]; assignments: number[] }> = {}
-    for (let w = 0; w < 4; w++) {
-      const t = start + w * 7 * 24 * 3600
-      weekStarts[t] = { quizzes: [], assignments: [] }
-    }
-    const sortedStarts = Object.keys(weekStarts)
-      .map(Number)
-      .sort((a, b) => a - b)
-    for (const r of filtered) {
-      const weekStart = sortedStarts.find((s) => r.completedAt >= s && r.completedAt < s + 7 * 24 * 3600) ?? sortedStarts[0]
-      if (!weekStarts[weekStart]) continue
-      const pct = r.maxScore > 0 ? (r.score / r.maxScore) * 100 : 0
-      const type = (r.taskType ?? "").toLowerCase()
-      if (type.includes("quiz")) weekStarts[weekStart].quizzes.push(pct)
-      else weekStarts[weekStart].assignments.push(pct)
-    }
-    return sortedStarts.map((start, i) => {
-      const q = weekStarts[start]?.quizzes ?? []
-      const a = weekStarts[start]?.assignments ?? []
-      return {
-        week: `Week ${i + 1}`,
-        Quizzes: q.length ? Math.round(q.reduce((s, x) => s + x, 0) / q.length) : 0,
-        Assignments: a.length ? Math.round(a.reduce((s, x) => s + x, 0) / a.length) : 0,
-      }
-    })
-  }, [taskResults, selectedLearner?.userId, chartMonth, selectedModuleId])
+  const masteryProgressData = useMemo(() => {
+    if (!scoreHistory?.length) return []
+    const sorted = [...scoreHistory].sort((a, b) => a.calculatedAt - b.calculatedAt)
+    return sorted.map((s, i) => ({
+      week: `Week ${i + 1}`,
+      Mastery: Math.round(s.masteryScore),
+      Application: Math.round(s.applicationScore),
+      Retrieval: Math.round(s.comprehensionScore),
+      Retention: Math.round(s.retentionScore),
+      Behaviour: Math.round(s.behavioralScore),
+    }))
+  }, [scoreHistory])
 
   const applicationScore = selectedLearner?.applicationScore ?? 0
   const retrievalScore = selectedLearner?.comprehensionScore ?? 0
@@ -175,8 +153,11 @@ function LearnerInsightsContentInner() {
 
   const chartConfig = useMemo(
     () => ({
-      Quizzes: { label: "Quizzes", color: "var(--chart-1)" },
-      Assignments: { label: "Assignments", color: "var(--chart-2)" },
+      Mastery: { label: "Mastery", color: "#9727fc" },
+      Application: { label: "Application", color: "#00bcd4" },
+      Retrieval: { label: "Retrieval", color: "#ff9800" },
+      Retention: { label: "Retention", color: "#ef4444" },
+      Behaviour: { label: "Behaviour", color: "#6b7280" },
     }),
     []
   )
@@ -260,13 +241,14 @@ function LearnerInsightsContentInner() {
               Individual Performance Insights
             </h1>
 
-            {/* Lesson Progress — full-width section on top */}
-            <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            {/* Mastery Score Progression — full-width chart on top */}
+            <section className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Lesson Progress</span>
+                <span className="text-[14px] font-medium text-black">Lesson Progress</span>
                 <Select value={chartMonth} onValueChange={setChartMonth}>
-                  <SelectTrigger className="h-8 w-[140px]">
+                  <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
                     <SelectValue />
+                    <ChevronDown className="h-5 w-5 shrink-0 text-black" />
                   </SelectTrigger>
                   <SelectContent>
                     {monthOptions.map((opt) => (
@@ -279,30 +261,45 @@ function LearnerInsightsContentInner() {
               </div>
               <div className="h-[240px]">
                 <ChartContainer config={chartConfig} className="h-full w-full">
-                  <LineChart data={lessonProgressData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <LineChart data={masteryProgressData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                     <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="Quizzes" stroke="var(--color-Quizzes)" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="Assignments" stroke="var(--color-Assignments)" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="Mastery" stroke="#9727fc" strokeWidth={2.5} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="Application" stroke="#00bcd4" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="Retrieval" stroke="#ff9800" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="Retention" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="Behaviour" stroke="#6b7280" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
                 </ChartContainer>
               </div>
-              <div className="mt-2 flex items-center justify-center gap-4">
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[var(--chart-1)]" />
-                  Quizzes
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-5">
+                <span className="flex items-center gap-1.5 text-[12px] text-black">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[#9727fc]" />
+                  Mastery
                 </span>
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[var(--chart-2)]" />
-                  Assignments
+                <span className="flex items-center gap-1.5 text-[12px] text-black">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[#00bcd4]" />
+                  Application
+                </span>
+                <span className="flex items-center gap-1.5 text-[12px] text-black">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[#ff9800]" />
+                  Retrieval
+                </span>
+                <span className="flex items-center gap-1.5 text-[12px] text-black">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[#ef4444]" />
+                  Retention
+                </span>
+                <span className="flex items-center gap-1.5 text-[12px] text-black">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[#6b7280]" />
+                  Behaviour
                 </span>
               </div>
             </section>
 
             {/* Mastery Score — exact Figma layout */}
-            <section className="flex flex-col items-center gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
+            <section className="flex flex-col items-center gap-4 rounded-[14px] border-2 border-[#eee] bg-white px-6 py-5">
               {/* Title & month selector */}
               <div className="flex w-full items-center justify-between">
                 <span className="text-[14px] font-medium text-black">Mastery Score</span>
@@ -323,9 +320,9 @@ function LearnerInsightsContentInner() {
 
               {/* Gauge + breakdown + pills row */}
               <div className="flex w-full items-end justify-between">
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-10">
                   {/* Gauge */}
-                  <div className="relative h-[166px] w-[168px] shrink-0">
+                  <div className="relative ml-2 h-[166px] w-[168px] shrink-0">
                     <svg className="h-full w-full" viewBox="0 0 168 166" fill="none">
                       <path
                         d="M 20 140 A 72 72 0 1 1 148 140"
