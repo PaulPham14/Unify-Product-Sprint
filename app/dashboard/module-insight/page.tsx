@@ -1,12 +1,12 @@
 "use client"
 
 import { Suspense, useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
-import { ChevronDown, ChevronLeft } from "lucide-react"
+import { ChevronDown, ChevronLeft, ExternalLink } from "lucide-react"
 import {
   Area,
   AreaChart,
@@ -72,19 +72,26 @@ function CohortRiskPill({ riskBucket }: { riskBucket: string }) {
   )
 }
 
+const RECOMMENDED_ACTIONS_PLACEHOLDER = [
+  { title: "Retrieval Practice", action: "Assign review quiz" },
+  { title: "Retention", action: "Send concept walkthrough" },
+  { title: "Retrieval Practice", action: "Schedule office hours" },
+]
+
 function ModuleInsightContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const courseId = searchParams.get("courseId") ?? ""
   const moduleId = searchParams.get("moduleId") ?? ""
   const convexAvailable = useConvexAvailable()
 
+  const modulesList = useQuery(
+    api.modules.listByCourse,
+    courseId ? { courseId } : "skip"
+  )
   const insight = useQuery(
     api.dashboardCourses.getModuleInsight,
     courseId && moduleId ? { courseId, moduleId } : "skip"
-  )
-  const course = useQuery(
-    api.dashboardCourses.getByCourseId,
-    courseId ? { courseId } : "skip"
   )
   const moduleDoc = useQuery(
     api.modules.getByModuleId,
@@ -125,6 +132,17 @@ function ModuleInsightContent() {
   }, [selectedConcept, totalStudents])
 
   const maxCount = useMemo(() => Math.max(1, ...chartData.map((d) => d.count)), [chartData])
+
+  const sortedModules = useMemo(
+    () => (modulesList ?? []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [modulesList],
+  )
+
+  const handleModuleChange = (newModuleId: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("moduleId", newModuleId)
+    router.replace(`/dashboard/module-insight?${params.toString()}`)
+  }
 
   if (!convexAvailable) {
     return (
@@ -182,14 +200,54 @@ function ModuleInsightContent() {
       </div>
       <div className="mx-auto max-w-4xl px-6 py-8">
         <div className="flex flex-col gap-8">
-          <header>
-            <h1 className="text-[24px] font-bold tracking-tight text-black">
-              {insight.courseTitle} / {insight.moduleLabel}
-            </h1>
-            {moduleDoc?.title && (
-              <p className="mt-1 text-sm text-[#5b5b5b]">{moduleDoc.title}</p>
-            )}
+          <header className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <h1 className="text-[24px] font-bold tracking-tight text-black">
+                {insight.courseTitle}
+              </h1>
+              <div className="relative flex h-[36px] items-center">
+                <select
+                  value={moduleId}
+                  onChange={(e) => handleModuleChange(e.target.value)}
+                  className="h-full min-w-[220px] cursor-pointer appearance-none rounded-[10px] border border-[#eee] bg-white pl-3 pr-9 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-[#9727fc]/30"
+                >
+                  {sortedModules.map((mod) => (
+                    <option key={mod.moduleId} value={mod.moduleId}>
+                      {mod.title}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 h-4 w-4 text-black" />
+              </div>
+            </div>
           </header>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="text-sm font-bold text-black">Recommended Actions To Take</h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {RECOMMENDED_ACTIONS_PLACEHOLDER.map((item, i) => (
+                <div
+                  key={i}
+                  className="relative rounded-[14px] border border-[#eee] bg-[#f9f9f9] p-5"
+                >
+                  <button
+                    type="button"
+                    className="absolute right-3 top-3 text-[#5b5b5b] hover:text-black"
+                    aria-label="Open action"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                  <p className="text-sm font-semibold text-black">{item.title}</p>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-medium text-[#9727fc] underline hover:no-underline"
+                  >
+                    {item.action}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
 
           <section className="flex flex-col gap-4">
             <h2 className="text-sm font-semibold tracking-[0.28px] text-black">
@@ -341,36 +399,6 @@ function ModuleInsightContent() {
               )}
             </div>
           </section>
-
-          {course && (
-            <section className="flex flex-col gap-4">
-              <h2 className="text-sm font-semibold tracking-[0.28px] text-black">
-                Course context
-              </h2>
-              <div className="rounded-[14px] border-2 border-[#eee] bg-white p-5">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-[#5b5b5b]">
-                      Cohort health score
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-black">{course.cohortHealthScore}%</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-[#5b5b5b]">
-                      Students at risk
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-black">{course.studentsAtRisk}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-[#5b5b5b]">
-                      Course mastery
-                    </p>
-                    <p className="mt-1 text-lg font-bold text-[#9727fc]">{course.masteryScore}%</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
 
           {moduleDoc?.description && (
             <section className="flex flex-col gap-4">
