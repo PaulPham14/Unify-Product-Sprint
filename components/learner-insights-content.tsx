@@ -20,6 +20,7 @@ import { MoreHorizontal, ExternalLink, ChevronDown } from "lucide-react"
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
 type TrendKey = "Mastery" | "Application" | "Retrieval" | "Retention" | "Behaviour"
 const ALL_TRENDS: TrendKey[] = ["Mastery", "Application", "Retrieval", "Retention", "Behaviour"]
+type ProgressRange = "all" | "1m" | "1w" | "1d"
 
 type ImpactLevel = "positive" | "moderate" | "negative"
 
@@ -81,6 +82,7 @@ function LearnerInsightsContentInner() {
   const [selectedLearnerId, setSelectedLearnerId] = useState<Id<"user"> | "">("")
   const [selectedModuleId, setSelectedModuleId] = useState<string>("all")
   const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(["Mastery"])
+  const [progressRange, setProgressRange] = useState<ProgressRange>("all")
   const [chartMonth, setChartMonth] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
@@ -109,15 +111,29 @@ function LearnerInsightsContentInner() {
   const masteryProgressData = useMemo(() => {
     if (!scoreHistory?.length) return []
     const sorted = [...scoreHistory].sort((a, b) => a.calculatedAt - b.calculatedAt)
-    return sorted.map((s, i) => ({
-      week: `Week ${i + 1}`,
+    const nowSec = Date.now() / 1000
+    const cutoff =
+      progressRange === "1d"
+        ? nowSec - 24 * 3600
+        : progressRange === "1w"
+          ? nowSec - 7 * 24 * 3600
+          : progressRange === "1m"
+            ? nowSec - 30 * 24 * 3600
+            : null
+    const filtered = cutoff == null ? sorted : sorted.filter((s) => s.calculatedAt >= cutoff)
+
+    return filtered.map((s, i) => ({
+      week:
+        progressRange === "all"
+          ? `Week ${i + 1}`
+          : format(new Date(s.calculatedAt * 1000), progressRange === "1d" ? "HH:mm" : "MMM d"),
       Mastery: Math.round(s.masteryScore),
       Application: Math.round(s.applicationScore),
       Retrieval: Math.round(s.comprehensionScore),
       Retention: Math.round(s.retentionScore),
       Behaviour: Math.round(s.behavioralScore),
     }))
-  }, [scoreHistory])
+  }, [scoreHistory, progressRange])
 
   const applicationScore = selectedLearner?.applicationScore ?? 0
   const retrievalScore = selectedLearner?.comprehensionScore ?? 0
@@ -258,17 +274,16 @@ function LearnerInsightsContentInner() {
             <section className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-[14px] font-medium text-black">Lesson Progress</span>
-                <Select value={chartMonth} onValueChange={setChartMonth}>
+                <Select value={progressRange} onValueChange={(v) => setProgressRange(v as ProgressRange)}>
                   <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
                     <SelectValue />
                     <ChevronDown className="h-5 w-5 shrink-0 text-black" />
                   </SelectTrigger>
                   <SelectContent>
-                    {monthOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="1m">1 Month</SelectItem>
+                    <SelectItem value="1w">1 Week</SelectItem>
+                    <SelectItem value="1d">1 Day</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
