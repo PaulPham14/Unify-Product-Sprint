@@ -5,7 +5,6 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, ExternalLink } from "lucide-react"
-import { PieChart, Pie, Cell } from "recharts"
 
 const ROWS_PER_PAGE = 6
 
@@ -15,6 +14,11 @@ const DIAGNOSIS_COLORS = {
   atRisk: "#9727fc",
   disengaged: "#ffae4c",
 }
+
+const DIAGNOSIS_CHART_SVG =
+  "http://localhost:3845/assets/d2e1a5e2bde79222aeda12eddec16a79803d8826.svg"
+const MASTERY_GAUGE_SVG =
+  "http://localhost:3845/assets/f67472ce1610abc315a07b2cc146b5af60aa4443.svg"
 
 function formatDate(ts: number) {
   const d = new Date(ts)
@@ -41,9 +45,9 @@ function StatusPill({ status }: { status: string }) {
 
 function MonthSelector() {
   return (
-    <button className="flex items-center gap-2 rounded-lg p-2 text-sm font-medium text-black hover:bg-gray-50">
+    <button className="flex items-center gap-2 rounded-lg p-2 text-sm font-medium text-black transition-colors hover:bg-gray-50">
       March 2026
-      <ChevronDown className="h-4 w-4 -rotate-90 text-black" />
+      <ChevronDown className="h-5 w-5 text-black" />
     </button>
   )
 }
@@ -57,40 +61,34 @@ function CohortDiagnosisChart({ course }: { course: NonNullable<ReturnType<typeo
   ]
 
   return (
-    <div className="flex flex-1 flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
-      <div className="flex items-center justify-between">
+    <div className="flex h-[244px] flex-1 flex-col rounded-[14px] border-2 border-[#eee] bg-white p-4">
+      <div className="flex w-full items-center justify-between">
         <span className="text-sm font-medium text-black">Cohort Diagnosis</span>
         <MonthSelector />
       </div>
-      <div className="flex items-center gap-10">
-        <PieChart width={162} height={162}>
-          <Pie
-            data={data}
-            cx={81}
-            cy={81}
-            innerRadius={45}
-            outerRadius={78}
-            dataKey="value"
-            stroke="none"
-          >
-            {data.map((entry, i) => (
-              <Cell key={i} fill={entry.color} />
+      <div className="flex flex-1 items-center justify-center overflow-x-auto">
+        <div className="inline-flex items-center gap-[40px]">
+          <div className="relative h-[162px] w-[161px] shrink-0">
+            <img
+              src={DIAGNOSIS_CHART_SVG}
+              alt=""
+              className="block size-full max-w-none"
+            />
+          </div>
+          <div className="flex shrink-0 flex-col items-start justify-center gap-4">
+            {data.map((item) => (
+              <div key={item.name} className="flex items-center gap-2">
+                <span className="size-3 shrink-0 rounded-[3px]" style={{ backgroundColor: item.color }} />
+                <span className="text-xs text-black">
+                  {item.name} = {item.value} students
+                </span>
+              </div>
             ))}
-          </Pie>
-        </PieChart>
-        <div className="flex flex-col gap-4">
-          {data.map((item) => (
-            <div key={item.name} className="flex items-center gap-2">
-              <span className="size-3 shrink-0 rounded-[3px]" style={{ backgroundColor: item.color }} />
-              <span className="text-xs text-black">
-                {item.name} = {item.value} students
-              </span>
-            </div>
-          ))}
-          <span className="text-xs text-black">
-            <span className="font-semibold">Total: </span>
-            {course.totalStudents} Students
-          </span>
+            <span className="text-xs text-black">
+              <span className="font-semibold">Total: </span>
+              {course.totalStudents} Students
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -99,13 +97,6 @@ function CohortDiagnosisChart({ course }: { course: NonNullable<ReturnType<typeo
 
 function MasteryGauge({ course }: { course: NonNullable<ReturnType<typeof useQuery<typeof api.dashboardCourses.getByCourseId>>> }) {
   const score = course.masteryScore
-  const filled = (score / 100) * 180
-  const gaugeData = [
-    { value: filled },
-    { value: 180 - filled },
-  ]
-  const bgData = [{ value: 180 }]
-
   const breakdowns = [
     { label: "Application", score: course.applicationScore, max: course.applicationMax },
     { label: "Retrieval", score: course.retrievalScore, max: course.retrievalMax },
@@ -114,38 +105,38 @@ function MasteryGauge({ course }: { course: NonNullable<ReturnType<typeof useQue
   ]
 
   return (
-    <div className="flex flex-1 flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
-      <div className="flex items-center justify-between">
+    <div className="flex h-[244px] flex-1 flex-col rounded-[14px] border-2 border-[#eee] bg-white p-4">
+      <div className="flex w-full items-center justify-between">
         <span className="text-sm font-medium text-black">Cohort Mastery Score</span>
         <MonthSelector />
       </div>
-      <div className="flex items-center gap-8">
-        <div className="relative flex shrink-0 flex-col items-center">
-          <PieChart width={168} height={100}>
-            <Pie data={bgData} cx={84} cy={90} startAngle={180} endAngle={0} innerRadius={60} outerRadius={82} dataKey="value" stroke="none">
-              <Cell fill="#e8e8e8" />
-            </Pie>
-            <Pie data={gaugeData} cx={84} cy={90} startAngle={180} endAngle={0} innerRadius={60} outerRadius={82} dataKey="value" stroke="none">
-              <Cell fill="#9727fc" />
-              <Cell fill="transparent" />
-            </Pie>
-          </PieChart>
-          <div className="absolute bottom-0 flex flex-col items-center">
-            <span className="text-[30px] font-bold text-[#9727fc]">{score}</span>
-            <span className="text-[10px] text-black">out of 100</span>
-          </div>
-        </div>
-        <div className="flex flex-col gap-[10px]">
-          {breakdowns.map((b) => (
-            <div key={b.label} className="flex w-48 items-center justify-between text-xs">
-              <span className="text-black">{b.label}</span>
-              <span className="font-medium text-[#9727fc]">{b.score} / {b.max}</span>
+      <div className="flex flex-1 items-center justify-center overflow-x-auto">
+        <div className="inline-flex items-center gap-[32px]">
+          <div className="relative h-[166px] w-[168px] shrink-0">
+            <img
+              src={MASTERY_GAUGE_SVG}
+              alt=""
+              className="block size-full max-w-none"
+            />
+            <div className="absolute left-1/2 top-[60px] flex w-[48px] -translate-x-1/2 flex-col items-center">
+              <span className="text-center text-[30px] font-bold leading-none text-[#9727fc]">
+                {score}
+              </span>
+              <span className="mt-1 text-[10px] leading-none text-black">out of 100</span>
             </div>
-          ))}
-          <div className="h-px w-48 bg-[#ccc]" />
-          <div className="flex w-48 flex-col items-end">
-            <span className="text-sm font-bold text-black">{score}</span>
-            <span className="text-[10px] text-black">out of 100</span>
+          </div>
+          <div className="flex shrink-0 flex-col items-end justify-center gap-[10px]">
+            {breakdowns.map((b) => (
+              <div key={b.label} className="flex w-[192px] items-center justify-between text-xs leading-none">
+                <span className="text-black">{b.label}</span>
+                <span className="font-medium text-[#9727fc]">{b.score} / {b.max}</span>
+              </div>
+            ))}
+            <div className="h-px w-[192px] bg-[#ccc]" />
+            <div className="flex w-[48px] flex-col items-end">
+              <span className="text-sm font-bold text-black">{score}</span>
+              <span className="text-[10px] text-black">out of 100</span>
+            </div>
           </div>
         </div>
       </div>
@@ -328,8 +319,11 @@ export function DashboardCoursesContent() {
   return (
     <div className="flex-1 overflow-y-auto bg-white p-6">
       <div className="flex flex-col gap-16">
-        {/* Top section: dropdown + stat cards */}
+        {/* Top section: title + dropdown + stat cards */}
         <div className="flex flex-col gap-4">
+          <h1 className="text-[30px] font-bold leading-normal tracking-[0.6px] text-foreground">
+            AI Fundamentals
+          </h1>
           <div className="relative w-fit">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -392,7 +386,7 @@ export function DashboardCoursesContent() {
             Cohort Performance Insights
           </h2>
           <div className="flex flex-col gap-4">
-            <div className="flex gap-4">
+            <div className="flex items-start gap-4">
               <CohortDiagnosisChart course={course} />
               <MasteryGauge course={course} />
             </div>
