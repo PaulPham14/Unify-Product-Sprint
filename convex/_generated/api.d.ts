@@ -13,6 +13,7 @@ import type * as concepts from "../concepts.js";
 import type * as dashboardCourses from "../dashboardCourses.js";
 import type * as lessons from "../lessons.js";
 import type * as modules from "../modules.js";
+import type * as scoreHistory from "../scoreHistory.js";
 import type * as scoreUtils from "../scoreUtils.js";
 import type * as scores from "../scores.js";
 import type * as seed from "../seed.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   dashboardCourses: typeof dashboardCourses;
   lessons: typeof lessons;
   modules: typeof modules;
+  scoreHistory: typeof scoreHistory;
   scoreUtils: typeof scoreUtils;
   scores: typeof scores;
   seed: typeof seed;

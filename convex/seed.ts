@@ -129,8 +129,63 @@ export const seedCohortLearnerMetrics = mutation({
         lastScoreUpdateAt: nowSec,
         lastActiveAt: nowSec,
       });
+
+      // Insert current snapshot into score_history
+      await ctx.db.insert("score_history", {
+        userId,
+        applicationScore: computed.applicationScore,
+        comprehensionScore: computed.comprehensionScore,
+        retentionScore: computed.retentionScore,
+        behavioralScore: computed.behavioralScore,
+        masteryScore: computed.masteryScore,
+        riskBucket: computed.riskBucket,
+        calculatedAt: nowSec,
+      });
+
+      // Seed 8 weeks of historical score snapshots leading up to current scores.
+      // Each week shows gradual progression with some noise so charts look realistic.
+      const weeksOfHistory = 8;
+      const learnerIdx = users.indexOf(user);
+      for (let w = weeksOfHistory; w >= 1; w--) {
+        const weekTs = nowSec - w * oneWeek;
+        const progress = (weeksOfHistory - w) / weeksOfHistory;
+        const jitter = () => (((learnerIdx * 7 + w * 13) % 11) - 5) * 0.8;
+
+        const histApp = Math.round(Math.max(0, Math.min(100,
+          computed.applicationScore * (0.55 + 0.45 * progress) + jitter()
+        )) * 100) / 100;
+        const histRet = Math.round(Math.max(0, Math.min(100,
+          computed.comprehensionScore * (0.50 + 0.50 * progress) + jitter()
+        )) * 100) / 100;
+        const histRetention = Math.round(Math.max(0, Math.min(100,
+          computed.retentionScore * (0.45 + 0.55 * progress) + jitter()
+        )) * 100) / 100;
+        const histBehavior = Math.round(Math.max(0, Math.min(100,
+          computed.behavioralScore * (0.70 + 0.30 * progress) + jitter()
+        )) * 100) / 100;
+        const histMastery = Math.round((
+          histApp * 0.4 + histRet * 0.3 + histRetention * 0.2 + histBehavior * 0.1
+        ) * 100) / 100;
+
+        let histBucket: string;
+        if (histMastery >= 85) histBucket = "high_mastery";
+        else if (histMastery >= 65) histBucket = "on_track";
+        else if (histMastery >= 50) histBucket = "at_risk";
+        else histBucket = "disengaged";
+
+        await ctx.db.insert("score_history", {
+          userId,
+          applicationScore: histApp,
+          comprehensionScore: histRet,
+          retentionScore: histRetention,
+          behavioralScore: histBehavior,
+          masteryScore: histMastery,
+          riskBucket: histBucket,
+          calculatedAt: weekTs,
+        });
+      }
     }
 
-    return { seeded: learners.length, inserted, message: `Seeded ${learners.length} learners, ${inserted} task results.` };
+    return { seeded: learners.length, inserted, message: `Seeded ${learners.length} learners, ${inserted} task results, plus ${learners.length * 9} score history snapshots.` };
   },
 });

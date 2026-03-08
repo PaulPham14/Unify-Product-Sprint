@@ -36,6 +36,17 @@ export const recalculateScoresForUser = mutation({
       lastScoreUpdateAt: nowSec,
     });
 
+    await ctx.db.insert("score_history", {
+      userId,
+      applicationScore: computed.applicationScore,
+      comprehensionScore: computed.comprehensionScore,
+      retentionScore: computed.retentionScore,
+      behavioralScore: computed.behavioralScore,
+      masteryScore: computed.masteryScore,
+      riskBucket: computed.riskBucket,
+      calculatedAt: nowSec,
+    });
+
     return user._id;
   },
 });

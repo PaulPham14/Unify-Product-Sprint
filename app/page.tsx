@@ -39,8 +39,6 @@ export default function Page() {
         return <MainContent />
       case "academy":
         return <AcademyContent />
-      case "learners":
-        return <LearnerInsightsContent />
       case "announcements":
         return <AnnouncementsContent />
       case "questions":
@@ -60,6 +58,8 @@ export default function Page() {
         return <DashboardForYouContent />
       case "courses":
         return <DashboardCoursesContent />
+      case "learners":
+        return <LearnerInsightsContent />
       default:
         return <DashboardForYouContent />
     }

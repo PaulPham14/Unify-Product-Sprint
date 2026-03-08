@@ -144,6 +144,13 @@ function DashboardPageHeader({ subPage }: { subPage: DashboardSubPage }) {
           <span className="text-sm font-medium text-foreground">Courses</span>
         </div>
       )
+    case "learners":
+      return (
+        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Learner Insights</span>
+        </div>
+      )
     default:
       return null
   }
@@ -168,13 +175,6 @@ function HomePageHeader({ subPage }: { subPage: HomeSubPage }) {
           <button className="text-muted-foreground hover:text-foreground">
             <MoreVertical className="h-4 w-4" />
           </button>
-        </div>
-      )
-    case "learners":
-      return (
-        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Learner Insights</span>
         </div>
       )
     case "announcements":
