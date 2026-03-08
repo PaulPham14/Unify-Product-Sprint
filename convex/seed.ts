@@ -142,6 +142,19 @@ export const seedCohortLearnerMetrics = mutation({
         calculatedAt: nowSec,
       });
 
+      await ctx.db.insert("course_mastery_history", {
+        cohortId,
+        userId,
+        moduleId: DEMO_MODULE_ID,
+        applicationScore: computed.applicationScore,
+        comprehensionScore: computed.comprehensionScore,
+        retentionScore: computed.retentionScore,
+        behavioralScore: computed.behavioralScore,
+        masteryScore: computed.masteryScore,
+        riskBucket: computed.riskBucket,
+        calculatedAt: nowSec,
+      });
+
       // Seed 8 weeks of historical score snapshots leading up to current scores.
       // Each week shows gradual progression with some noise so charts look realistic.
       const weeksOfHistory = 8;
@@ -183,9 +196,26 @@ export const seedCohortLearnerMetrics = mutation({
           riskBucket: histBucket,
           calculatedAt: weekTs,
         });
+
+        await ctx.db.insert("course_mastery_history", {
+          cohortId,
+          userId,
+          moduleId: DEMO_MODULE_ID,
+          applicationScore: histApp,
+          comprehensionScore: histRet,
+          retentionScore: histRetention,
+          behavioralScore: histBehavior,
+          masteryScore: histMastery,
+          riskBucket: histBucket,
+          calculatedAt: weekTs,
+        });
       }
     }
 
-    return { seeded: learners.length, inserted, message: `Seeded ${learners.length} learners, ${inserted} task results, plus ${learners.length * 9} score history snapshots.` };
+    return {
+      seeded: learners.length,
+      inserted,
+      message: `Seeded ${learners.length} learners, ${inserted} task results, plus ${learners.length * 9} score history snapshots and ${learners.length * 9} course mastery snapshots.`,
+    };
   },
 });

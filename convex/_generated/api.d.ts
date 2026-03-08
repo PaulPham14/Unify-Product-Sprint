@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as cohortMastery from "../cohortMastery.js";
 import type * as cohorts from "../cohorts.js";
 import type * as concepts from "../concepts.js";
 import type * as dashboardCourses from "../dashboardCourses.js";
@@ -29,6 +30,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  cohortMastery: typeof cohortMastery;
   cohorts: typeof cohorts;
   concepts: typeof concepts;
   dashboardCourses: typeof dashboardCourses;

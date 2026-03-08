@@ -47,6 +47,26 @@ export const recalculateScoresForUser = mutation({
       calculatedAt: nowSec,
     });
 
+    // Also persist per-course (module) mastery snapshots for cohort-level trend charts.
+    const moduleIds = Array.from(new Set(results.map((r) => r.moduleId)));
+    for (const moduleId of moduleIds) {
+      const moduleResults = results.filter((r) => r.moduleId === moduleId);
+      if (moduleResults.length === 0) continue;
+      const perCourse = computeScoresFromResults(moduleResults, user, nowSec);
+      await ctx.db.insert("course_mastery_history", {
+        cohortId: user.cohortId,
+        userId,
+        moduleId,
+        applicationScore: perCourse.applicationScore,
+        comprehensionScore: perCourse.comprehensionScore,
+        retentionScore: perCourse.retentionScore,
+        behavioralScore: perCourse.behavioralScore,
+        masteryScore: perCourse.masteryScore,
+        riskBucket: perCourse.riskBucket,
+        calculatedAt: nowSec,
+      });
+    }
+
     return user._id;
   },
 });
