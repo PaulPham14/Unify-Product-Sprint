@@ -4,8 +4,10 @@ import { useState, useMemo } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
-import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, ExternalLink } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, ExternalLink, Pointer } from "lucide-react"
 
 const ROWS_PER_PAGE = 6
 
@@ -14,6 +16,35 @@ const DIAGNOSIS_COLORS = {
   onTrack: "#ff8a9e",
   atRisk: "#9727fc",
   disengaged: "#ffae4c",
+}
+
+const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
+
+const RISK_BUCKET_MAP: Record<string, string> = {
+  "High Mastery": "high_mastery",
+  "On Track": "on_track",
+  "At Risk": "at_risk",
+  "Disengaged": "disengaged",
+}
+
+const MASTERY_GAUGE_RADIUS = 62
+const MASTERY_GAUGE_START_ANGLE = 150
+const MASTERY_GAUGE_SWEEP_ANGLE = 240
+const MASTERY_GAUGE_TICK_COUNT = 11
+
+function getPolarPoint(cx: number, cy: number, radius: number, angleDeg: number) {
+  const angleRad = (angleDeg * Math.PI) / 180
+  return {
+    x: cx + radius * Math.cos(angleRad),
+    y: cy + radius * Math.sin(angleRad),
+  }
+}
+
+type LearnerDoc = {
+  _id: string
+  name: string
+  riskBucket?: string
+  role: string
 }
 
 type CourseDoc = NonNullable<
@@ -55,13 +86,60 @@ function MonthSelector() {
   )
 }
 
-function CohortDiagnosisChart({ course }: { course: CourseDoc }) {
+function DiagnosisHoverCard({
+  segmentName,
+  studentCount,
+}: {
+  segmentName: string
+  studentCount: number
+}) {
+  const href = `/dashboard/cohort-diagnosis?segment=${encodeURIComponent(segmentName)}`
+  return (
+    <div className="flex w-full min-w-[280px] max-w-[312px] flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 shadow-lg">
+      <div className="flex w-full items-end justify-between leading-normal text-black">
+        <span className="text-[14px] font-medium">{segmentName}</span>
+        <span className="text-[12px] font-normal whitespace-nowrap">
+          {studentCount} {studentCount === 1 ? "Student" : "Students"}
+        </span>
+      </div>
+      <Link
+        href={href}
+        className="flex w-full shrink-0 items-center justify-center gap-[10px] rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[10px] font-medium leading-normal text-white transition-opacity hover:opacity-90"
+      >
+        <Pointer className="size-[11px] shrink-0" aria-hidden />
+        Click to View People
+      </Link>
+    </div>
+  )
+}
+
+function CohortDiagnosisChart({ course, learners }: { course: CourseDoc; learners?: LearnerDoc[] }) {
+  const router = useRouter()
+  const [hoveredSegment, setHoveredSegment] = useState<string | null>(null)
+
   const data = [
     { name: "High Mastery", value: course.diagnosisHighMastery, color: DIAGNOSIS_COLORS.highMastery },
     { name: "On Track", value: course.diagnosisOnTrack, color: DIAGNOSIS_COLORS.onTrack },
     { name: "At Risk", value: course.diagnosisAtRisk, color: DIAGNOSIS_COLORS.atRisk },
     { name: "Disengaged", value: course.diagnosisDisengaged, color: DIAGNOSIS_COLORS.disengaged },
   ]
+  const pieData = [data[1], data[0], data[3], data[2]].filter(
+    (entry): entry is (typeof data)[number] => Boolean(entry)
+  )
+
+  const hoveredData = useMemo(() => {
+    if (!hoveredSegment) return null
+    const entry = data.find((d) => d.name === hoveredSegment)
+    const count = entry?.value ?? 0
+    return {
+      segmentName: hoveredSegment,
+      studentCount: count,
+    }
+  }, [hoveredSegment, data])
+
+  const handleSegmentClick = (segmentName: string) => {
+    router.push(`/dashboard/cohort-diagnosis?segment=${encodeURIComponent(segmentName)}`)
+  }
 
   return (
     <div className="flex h-[244px] flex-1 flex-col rounded-[14px] border-2 border-[#eee] bg-white p-4">
@@ -71,29 +149,52 @@ function CohortDiagnosisChart({ course }: { course: CourseDoc }) {
       </div>
       <div className="flex flex-1 items-center justify-center overflow-x-auto">
         <div className="inline-flex items-center gap-[40px]">
-          <div className="relative h-[162px] w-[161px] shrink-0">
+          <div
+            className="relative h-[162px] w-[161px] shrink-0"
+            onMouseLeave={() => setHoveredSegment(null)}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={45}
-                  outerRadius={75}
+                  innerRadius={24}
+                  outerRadius={72}
                   dataKey="value"
-                  startAngle={90}
-                  endAngle={-270}
-                  stroke="none"
+                  startAngle={235}
+                  endAngle={-125}
+                  paddingAngle={4}
+                  cornerRadius={8}
+                  stroke="#ffffff"
+                  strokeWidth={4}
+                  onClick={(_: unknown, index: number) =>
+                    pieData[index]?.name && handleSegmentClick(pieData[index].name)
+                  }
                 >
-                  {data.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
+                  {pieData.map((entry) => (
+                    <Cell
+                      key={entry.name}
+                      fill={entry.color}
+                      style={{ cursor: "pointer", outline: "none" }}
+                      onMouseEnter={() => setHoveredSegment(entry.name)}
+                    />
                   ))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="text-[22px] font-bold text-black">{course.totalStudents}</span>
-            </div>
+            {hoveredData && (
+              <div
+                className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2"
+                onMouseEnter={() => setHoveredSegment(hoveredData.segmentName)}
+                onMouseLeave={() => setHoveredSegment(null)}
+              >
+                <DiagnosisHoverCard
+                  segmentName={hoveredData.segmentName}
+                  studentCount={hoveredData.studentCount}
+                />
+              </div>
+            )}
           </div>
           <div className="flex shrink-0 flex-col items-start justify-center gap-4">
             {data.map((item) => (
@@ -125,6 +226,15 @@ function MasteryGauge({ course }: { course: CourseDoc }) {
   ]
 
   const arcFraction = Math.min(1, Math.max(0, score / 100))
+  const gaugeCircumference = 2 * Math.PI * MASTERY_GAUGE_RADIUS
+  const gaugeSweepLength = gaugeCircumference * (MASTERY_GAUGE_SWEEP_ANGLE / 360)
+  const gaugeProgressLength = gaugeSweepLength * arcFraction
+  const tickAngles = Array.from(
+    { length: MASTERY_GAUGE_TICK_COUNT },
+    (_, index) =>
+      MASTERY_GAUGE_START_ANGLE +
+      (index * MASTERY_GAUGE_SWEEP_ANGLE) / (MASTERY_GAUGE_TICK_COUNT - 1)
+  )
 
   return (
     <div className="flex h-[244px] flex-1 flex-col rounded-[14px] border-2 border-[#eee] bg-white p-4">
@@ -136,27 +246,50 @@ function MasteryGauge({ course }: { course: CourseDoc }) {
         <div className="inline-flex items-center gap-[32px]">
           <div className="relative h-[166px] w-[168px] shrink-0">
             <svg className="h-full w-full" viewBox="0 0 168 166" fill="none">
-              <path
-                d="M 20 140 A 72 72 0 1 1 148 140"
-                stroke="#eee"
-                strokeWidth="14"
+              <circle
+                cx="84"
+                cy="83"
+                r={MASTERY_GAUGE_RADIUS}
+                stroke="#e4e4e4"
+                strokeWidth="12"
                 strokeLinecap="round"
                 fill="none"
+                strokeDasharray={`${gaugeSweepLength} ${gaugeCircumference}`}
+                transform="rotate(150 84 83)"
               />
-              <path
-                d="M 20 140 A 72 72 0 1 1 148 140"
+              <circle
+                cx="84"
+                cy="83"
+                r={MASTERY_GAUGE_RADIUS}
                 stroke="#9727fc"
-                strokeWidth="14"
+                strokeWidth="12"
                 strokeLinecap="round"
                 fill="none"
-                strokeDasharray={`${arcFraction * 330} 330`}
+                strokeDasharray={`${gaugeProgressLength} ${gaugeCircumference}`}
+                transform="rotate(150 84 83)"
               />
+              {tickAngles.map((angle, index) => {
+                const start = getPolarPoint(84, 83, 49, angle)
+                const end = getPolarPoint(84, 83, 56, angle)
+                return (
+                  <line
+                    key={index}
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x}
+                    y2={end.y}
+                    stroke="#d3d3d3"
+                    strokeWidth="1.25"
+                    strokeLinecap="round"
+                  />
+                )
+              })}
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-center text-[30px] font-bold leading-none text-[#9727fc]">
                 {score}
               </span>
-              <span className="mt-1 text-[10px] leading-none text-black">out of 100</span>
+              <span className="mt-[6px] text-[10px] leading-none text-[#888]">out of 100</span>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end justify-center gap-[10px]">
@@ -330,6 +463,8 @@ function DashboardCoursesContentInner() {
     }
   }
 
+  const cohortLearners = useQuery(api.users.listByCohort, { cohortId: INSTRUCTOR_COHORT_ID })
+
   const activeCourseId = selectedCourseId ?? courses?.[0]?.courseId ?? null
   const course = useQuery(
     api.dashboardCourses.getByCourseId,
@@ -469,7 +604,7 @@ function DashboardCoursesContentInner() {
           </h2>
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-4">
-              <CohortDiagnosisChart course={course} />
+              <CohortDiagnosisChart course={course} learners={cohortLearners as LearnerDoc[] | undefined} />
               <MasteryGauge course={course} />
             </div>
             <AssessmentTable assessments={assessments} />
