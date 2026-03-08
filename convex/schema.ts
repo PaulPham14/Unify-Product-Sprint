@@ -167,6 +167,19 @@ export default defineSchema({
   })
     .index("by_courseId", ["courseId"]),
 
+  concept_mastery_scores: defineTable({
+    cohortId: v.string(),
+    courseId: v.string(),
+    moduleId: v.string(),
+    conceptId: v.string(),
+    userId: v.string(),
+    masteryScore: v.float64(),
+    calculatedAt: v.float64(),
+  })
+    .index("by_moduleId", ["moduleId"])
+    .index("by_moduleId_conceptId", ["moduleId", "conceptId"])
+    .index("by_userId", ["userId"]),
+
   user: defineTable({
     applicationScore: v.optional(v.float64()),
     behavioralScore: v.optional(v.float64()),

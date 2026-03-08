@@ -314,7 +314,7 @@ function MasteryGauge({ course }: { course: CourseDoc }) {
   )
 }
 
-const MODULE_INSIGHTS_ROWS_PER_PAGE = 6
+const MODULE_INSIGHTS_ROW_OPTIONS = [5, 10] as const
 
 function CohortRiskPill({ riskBucket }: { riskBucket: string }) {
   const risk = riskBucket === "Low" ? "low" : riskBucket === "High" ? "high" : "moderate"
@@ -334,11 +334,9 @@ function CohortRiskPill({ riskBucket }: { riskBucket: string }) {
 function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undefined }) {
   const list = insights ?? []
   const [page, setPage] = useState(1)
-  const totalPages = Math.max(1, Math.ceil(list.length / MODULE_INSIGHTS_ROWS_PER_PAGE))
-  const pageRows = list.slice(
-    (page - 1) * MODULE_INSIGHTS_ROWS_PER_PAGE,
-    page * MODULE_INSIGHTS_ROWS_PER_PAGE
-  )
+  const [rowsPerPage, setRowsPerPage] = useState(5)
+  const totalPages = Math.max(1, Math.ceil(list.length / rowsPerPage))
+  const pageRows = list.slice((page - 1) * rowsPerPage, page * rowsPerPage)
   const pageNumbers = useMemo(() => {
     const pages: (number | "...")[] = []
     for (let i = 1; i <= Math.min(5, totalPages); i++) pages.push(i)
@@ -347,6 +345,11 @@ function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undef
     return pages
   }, [totalPages])
   const isEmpty = list.length === 0
+
+  const handleRowsPerPageChange = (value: number) => {
+    setRowsPerPage(value)
+    setPage(1)
+  }
 
   return (
     <div className="flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
@@ -387,9 +390,12 @@ function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undef
                 <span className="text-xs font-medium text-black">{Math.round(row.averageScore)}%</span>
               </div>
               <div className="flex flex-1 items-center justify-center">
-                <button type="button" className="text-xs font-medium text-[#9727fc] underline hover:no-underline">
+                <Link
+                  href={`/dashboard/module-insight?courseId=${encodeURIComponent(row.courseId)}&moduleId=${encodeURIComponent(row.moduleId)}`}
+                  className="text-xs font-medium text-[#9727fc] underline hover:no-underline"
+                >
                   View Insights
-                </button>
+                </Link>
               </div>
             </div>
           ))
@@ -397,9 +403,19 @@ function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undef
         <div className="flex items-center gap-[156px]">
           <div className="flex items-center gap-[10px]">
             <span className="text-[10px] font-medium text-black">Show</span>
-            <div className="flex h-[27px] items-center gap-[10px] rounded-[4px] border border-[#afafaf] bg-white px-[10px]">
-              <span className="text-[10px] font-medium text-black">{MODULE_INSIGHTS_ROWS_PER_PAGE}</span>
-              <ChevronDown className="h-4 w-4 text-black" />
+            <div className="relative flex h-[27px] items-center">
+              <select
+                value={rowsPerPage}
+                onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+                className="h-full min-w-[52px] cursor-pointer appearance-none rounded-[4px] border border-[#afafaf] bg-white pl-[10px] pr-7 text-[10px] font-medium text-black focus:outline-none focus:ring-1 focus:ring-[#afafaf]"
+              >
+                {MODULE_INSIGHTS_ROW_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-1 h-4 w-4 text-black" aria-hidden />
             </div>
             <span className="text-[10px] font-medium text-black">Row</span>
           </div>

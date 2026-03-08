@@ -29,6 +29,8 @@ export const seed = mutation({
 
     const existingModuleInsights = await ctx.db.query("module_insights").collect();
     for (const doc of existingModuleInsights) await ctx.db.delete(doc._id);
+    const existingConceptMasteryScores = await ctx.db.query("concept_mastery_scores").collect();
+    for (const doc of existingConceptMasteryScores) await ctx.db.delete(doc._id);
 
     // Seed courses
     for (const c of coursesData) {
@@ -76,12 +78,45 @@ export const seed = mutation({
       await ctx.db.insert("module_insights", row);
     }
 
+    // Seed concept-level mastery per learner for module insight detail charts.
+    const learners = (await ctx.db
+      .query("user")
+      .withIndex("by_cohortId", (q) => q.eq("cohortId", COHORT_ID))
+      .collect()).filter((u) => u.role === "learner");
+    let conceptMasteryRows = 0;
+    for (const moduleGroup of modulesData) {
+      for (const module of moduleGroup.modules) {
+        const moduleInsight = moduleInsightsData.find(
+          (m) => m.courseId === moduleGroup.courseId && m.moduleId === module.moduleId,
+        );
+        const moduleBase = moduleInsight?.averageScore ?? 70;
+        for (const concept of module.concepts) {
+          for (let i = 0; i < learners.length; i++) {
+            const learner = learners[i];
+            const userId = learner.userId ?? String(learner._id);
+            const score = seededConceptScore(moduleBase, concept.conceptId, i);
+            await ctx.db.insert("concept_mastery_scores", {
+              cohortId: COHORT_ID,
+              courseId: moduleGroup.courseId,
+              moduleId: module.moduleId,
+              conceptId: concept.conceptId,
+              userId,
+              masteryScore: score,
+              calculatedAt: now,
+            });
+            conceptMasteryRows++;
+          }
+        }
+      }
+    }
+
     return {
       courses: coursesData.length,
       modules: moduleCount,
       concepts: conceptCount,
       assessments: allAssessments.length,
       moduleInsights: moduleInsightsData.length,
+      conceptMasteryRows,
     };
   },
 });
@@ -348,3 +383,14 @@ const moduleInsightsData = [
   { courseId: "course_unify_taxes", moduleId: "mod_tax_03", moduleLabel: "Module 3", courseTitle: "Unify Taxes", averageScore: 52, cohortRiskBucket: "High" },
   { courseId: "course_unify_taxes", moduleId: "mod_tax_04", moduleLabel: "Module 4", courseTitle: "Unify Taxes", averageScore: 51, cohortRiskBucket: "High" },
 ];
+
+function seededConceptScore(moduleBase: number, conceptId: string, learnerIndex: number) {
+  const conceptHash = conceptId
+    .split("")
+    .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  // deterministic spread around the module mastery score
+  const conceptOffset = ((conceptHash % 9) - 4) * 1.6;
+  const learnerOffset = ((learnerIndex % 10) - 5) * 1.9;
+  const score = moduleBase + conceptOffset + learnerOffset;
+  return Math.max(35, Math.min(98, Math.round(score * 10) / 10));
+}
