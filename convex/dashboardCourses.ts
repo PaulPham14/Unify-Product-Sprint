@@ -51,18 +51,41 @@ export const getModuleInsight = query({
   },
 });
 
-export const listConceptMasteryByModule = query({
+export const listConceptMasteryPeriods = query({
   args: { moduleId: v.string() },
   handler: async (ctx, { moduleId }) => {
+    const rows = await ctx.db
+      .query("concept_mastery_scores")
+      .withIndex("by_moduleId_periodKey", (q) => q.eq("moduleId", moduleId))
+      .collect();
+    const keys = Array.from(new Set(rows.map((r) => r.periodKey))).sort().reverse();
+    return keys;
+  },
+});
+
+export const listConceptMasteryByModule = query({
+  args: { moduleId: v.string(), periodKey: v.optional(v.string()) },
+  handler: async (ctx, { moduleId, periodKey }) => {
     const concepts = await ctx.db
       .query("concept")
       .withIndex("by_moduleId", (q) => q.eq("moduleId", moduleId))
       .collect();
 
-    const scores = await ctx.db
+    let scores = await ctx.db
       .query("concept_mastery_scores")
       .withIndex("by_moduleId", (q) => q.eq("moduleId", moduleId))
       .collect();
+
+    if (periodKey != null && periodKey !== "") {
+      scores = scores.filter((s) => s.periodKey === periodKey);
+    } else {
+      const periods = await ctx.db
+        .query("concept_mastery_scores")
+        .withIndex("by_moduleId", (q) => q.eq("moduleId", moduleId))
+        .collect();
+      const latest = Array.from(new Set(periods.map((r) => r.periodKey))).sort().reverse()[0];
+      if (latest) scores = scores.filter((s) => s.periodKey === latest);
+    }
 
     const userIds = Array.from(new Set(scores.map((s) => s.userId)));
     const users = await Promise.all(

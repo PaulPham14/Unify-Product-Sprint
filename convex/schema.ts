@@ -175,8 +175,11 @@ export default defineSchema({
     userId: v.string(),
     masteryScore: v.float64(),
     calculatedAt: v.float64(),
+    /** Time period for filtering, e.g. "2026-01" for January 2026 */
+    periodKey: v.string(),
   })
     .index("by_moduleId", ["moduleId"])
+    .index("by_moduleId_periodKey", ["moduleId", "periodKey"])
     .index("by_moduleId_conceptId", ["moduleId", "conceptId"])
     .index("by_userId", ["userId"]),
 

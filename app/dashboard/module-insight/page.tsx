@@ -25,20 +25,35 @@ const THRESHOLDS = [
   { x: 50, label: "Disengaged Average", color: "#ffae4c" },
 ]
 
-const BIN_SIZE = 2
-const BINS = Array.from({ length: Math.ceil(100 / BIN_SIZE) + 1 }, (_, i) => i * BIN_SIZE)
+const STEP = 2
+const POINTS = Array.from({ length: Math.floor(100 / STEP) + 1 }, (_, i) => i * STEP)
+
+function gaussianKDE(scores: number[], bandwidth: number) {
+  const kernel = (u: number) => Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI)
+  return (x: number) => {
+    if (scores.length === 0) return 0
+    let sum = 0
+    for (const s of scores) sum += kernel((x - s) / bandwidth)
+    return sum / (scores.length * bandwidth)
+  }
+}
 
 function buildDistribution(scores: number[], total: number) {
-  const counts = new Map<number, number>()
-  for (const bin of BINS) counts.set(bin, 0)
-  for (const s of scores) {
-    const bin = Math.min(Math.floor(s / BIN_SIZE) * BIN_SIZE, BINS[BINS.length - 1])
-    counts.set(bin, (counts.get(bin) ?? 0) + 1)
-  }
-  const t = total || 1
-  return BINS.map((bin) => {
-    const count = counts.get(bin) ?? 0
-    return { bin, count, pct: Math.round((count / t) * 1000) / 10 }
+  const n = scores.length
+  if (n === 0) return POINTS.map((x) => ({ bin: x, count: 0, pct: 0 }))
+
+  const std = Math.max(
+    1,
+    Math.sqrt(scores.reduce((s, v) => s + (v - scores.reduce((a, b) => a + b, 0) / n) ** 2, 0) / n),
+  )
+  const bandwidth = 1.06 * std * Math.pow(n, -0.2)
+  const kde = gaussianKDE(scores, bandwidth)
+
+  return POINTS.map((x) => {
+    const density = kde(x)
+    const count = Math.round(density * n * STEP * 100) / 100
+    const pct = Math.round(density * STEP * 100 * 100) / 100
+    return { bin: x, count, pct }
   })
 }
 
@@ -203,12 +218,8 @@ function ModuleInsightContent() {
           <section className="flex flex-col gap-2">
             <h2 className="text-sm font-bold text-black">Module Performance Insights</h2>
             <div className="rounded-[14px] border-2 border-[#eee] bg-white p-6">
-              <div className="mb-1 flex items-center justify-between">
+              <div className="mb-1">
                 <span className="text-sm font-semibold text-black">Concept Insights</span>
-                <button className="flex items-center gap-1 text-xs font-medium text-black">
-                  March 2026
-                  <ChevronDown className="h-4 w-4" />
-                </button>
               </div>
 
               <div className="mb-4 flex items-center gap-4">
@@ -289,7 +300,7 @@ function ModuleInsightContent() {
                         </YAxis>
                         <Tooltip
                           contentStyle={{ borderRadius: 8, border: "1px solid #eee", fontSize: 11 }}
-                          labelFormatter={(v) => `${v}%–${Number(v) + BIN_SIZE - 1}%`}
+                          labelFormatter={(v) => `${v}%`}
                           formatter={(value: number) =>
                             yAxisMode === "count"
                               ? [`${value}`, "Students"]

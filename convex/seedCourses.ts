@@ -78,11 +78,13 @@ export const seed = mutation({
       await ctx.db.insert("module_insights", row);
     }
 
-    // Seed concept-level mastery per learner for module insight detail charts.
+    // Seed concept-level mastery per learner, by month (2026-01, 2026-02, 2026-03).
     const learners = (await ctx.db
       .query("user")
       .withIndex("by_cohortId", (q) => q.eq("cohortId", COHORT_ID))
       .collect()).filter((u) => u.role === "learner");
+    const periodKeys = ["2026-01", "2026-02", "2026-03"]
+    const monthTs = [now - 60 * 24 * 3600 * 30 * 2, now - 30 * 24 * 3600, now]
     let conceptMasteryRows = 0;
     for (const moduleGroup of modulesData) {
       for (const module of moduleGroup.modules) {
@@ -90,21 +92,28 @@ export const seed = mutation({
           (m) => m.courseId === moduleGroup.courseId && m.moduleId === module.moduleId,
         );
         const moduleBase = moduleInsight?.averageScore ?? 70;
-        for (const concept of module.concepts) {
-          for (let i = 0; i < learners.length; i++) {
-            const learner = learners[i];
-            const userId = learner.userId ?? String(learner._id);
-            const score = seededConceptScore(moduleBase, concept.conceptId, i);
-            await ctx.db.insert("concept_mastery_scores", {
-              cohortId: COHORT_ID,
-              courseId: moduleGroup.courseId,
-              moduleId: module.moduleId,
-              conceptId: concept.conceptId,
-              userId,
-              masteryScore: score,
-              calculatedAt: now,
-            });
-            conceptMasteryRows++;
+        for (const periodIdx of periodKeys.keys()) {
+          const periodKey = periodKeys[periodIdx]
+          const calculatedAt = monthTs[periodIdx]
+          const monthTrend = periodIdx === 0 ? -3 : periodIdx === 1 ? 0 : 4
+          for (const concept of module.concepts) {
+            for (let i = 0; i < learners.length; i++) {
+              const learner = learners[i];
+              const userId = learner.userId ?? String(learner._id);
+              const baseScore = seededConceptScore(moduleBase, concept.conceptId, i);
+              const score = Math.max(0, Math.min(100, baseScore + monthTrend + (i % 3) - 1));
+              await ctx.db.insert("concept_mastery_scores", {
+                cohortId: COHORT_ID,
+                courseId: moduleGroup.courseId,
+                moduleId: module.moduleId,
+                conceptId: concept.conceptId,
+                userId,
+                masteryScore: score,
+                calculatedAt,
+                periodKey,
+              });
+              conceptMasteryRows++;
+            }
           }
         }
       }
