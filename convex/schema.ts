@@ -37,6 +37,7 @@ export default defineSchema({
 
   modules: defineTable({
     cohortId: v.optional(v.string()),
+    courseId: v.optional(v.string()),
     createdAt: v.float64(),
     description: v.string(),
     instructorId: v.string(),
@@ -46,6 +47,7 @@ export default defineSchema({
   })
     .index("by_instructorId", ["instructorId"])
     .index("by_cohortId", ["cohortId"])
+    .index("by_courseId", ["courseId"])
     .index("by_moduleId", ["moduleId"]),
 
   task_results: defineTable({

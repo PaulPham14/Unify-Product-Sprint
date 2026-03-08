@@ -41,3 +41,14 @@ export const listByInstructor = query({
       .collect();
   },
 });
+
+/** List modules for a course */
+export const listByCourse = query({
+  args: { courseId: v.string() },
+  handler: async (ctx, { courseId }) => {
+    return await ctx.db
+      .query("modules")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .collect();
+  },
+});

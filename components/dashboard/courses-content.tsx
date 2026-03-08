@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, ExternalLink } from "lucide-react"
 
 const ROWS_PER_PAGE = 6
@@ -15,10 +16,12 @@ const DIAGNOSIS_COLORS = {
   disengaged: "#ffae4c",
 }
 
-const DIAGNOSIS_CHART_SVG =
-  "http://localhost:3845/assets/d2e1a5e2bde79222aeda12eddec16a79803d8826.svg"
-const MASTERY_GAUGE_SVG =
-  "http://localhost:3845/assets/f67472ce1610abc315a07b2cc146b5af60aa4443.svg"
+type CourseDoc = NonNullable<
+  ReturnType<typeof useQuery<typeof api.dashboardCourses.getByCourseId>>
+>
+type AssessmentList = NonNullable<
+  ReturnType<typeof useQuery<typeof api.dashboardCourses.listAssessments>>
+>
 
 function formatDate(ts: number) {
   const d = new Date(ts)
@@ -52,7 +55,7 @@ function MonthSelector() {
   )
 }
 
-function CohortDiagnosisChart({ course }: { course: NonNullable<ReturnType<typeof useQuery<typeof api.dashboardCourses.getByCourseId>>> }) {
+function CohortDiagnosisChart({ course }: { course: CourseDoc }) {
   const data = [
     { name: "High Mastery", value: course.diagnosisHighMastery, color: DIAGNOSIS_COLORS.highMastery },
     { name: "On Track", value: course.diagnosisOnTrack, color: DIAGNOSIS_COLORS.onTrack },
@@ -69,11 +72,28 @@ function CohortDiagnosisChart({ course }: { course: NonNullable<ReturnType<typeo
       <div className="flex flex-1 items-center justify-center overflow-x-auto">
         <div className="inline-flex items-center gap-[40px]">
           <div className="relative h-[162px] w-[161px] shrink-0">
-            <img
-              src={DIAGNOSIS_CHART_SVG}
-              alt=""
-              className="block size-full max-w-none"
-            />
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={75}
+                  dataKey="value"
+                  startAngle={90}
+                  endAngle={-270}
+                  stroke="none"
+                >
+                  {data.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className="text-[22px] font-bold text-black">{course.totalStudents}</span>
+            </div>
           </div>
           <div className="flex shrink-0 flex-col items-start justify-center gap-4">
             {data.map((item) => (
@@ -95,7 +115,7 @@ function CohortDiagnosisChart({ course }: { course: NonNullable<ReturnType<typeo
   )
 }
 
-function MasteryGauge({ course }: { course: NonNullable<ReturnType<typeof useQuery<typeof api.dashboardCourses.getByCourseId>>> }) {
+function MasteryGauge({ course }: { course: CourseDoc }) {
   const score = course.masteryScore
   const breakdowns = [
     { label: "Application", score: course.applicationScore, max: course.applicationMax },
@@ -103,6 +123,8 @@ function MasteryGauge({ course }: { course: NonNullable<ReturnType<typeof useQue
     { label: "Retention", score: course.retentionScore, max: course.retentionMax },
     { label: "Behaviour", score: course.behaviourScore, max: course.behaviourMax },
   ]
+
+  const arcFraction = Math.min(1, Math.max(0, score / 100))
 
   return (
     <div className="flex h-[244px] flex-1 flex-col rounded-[14px] border-2 border-[#eee] bg-white p-4">
@@ -113,12 +135,24 @@ function MasteryGauge({ course }: { course: NonNullable<ReturnType<typeof useQue
       <div className="flex flex-1 items-center justify-center overflow-x-auto">
         <div className="inline-flex items-center gap-[32px]">
           <div className="relative h-[166px] w-[168px] shrink-0">
-            <img
-              src={MASTERY_GAUGE_SVG}
-              alt=""
-              className="block size-full max-w-none"
-            />
-            <div className="absolute left-1/2 top-[60px] flex w-[48px] -translate-x-1/2 flex-col items-center">
+            <svg className="h-full w-full" viewBox="0 0 168 166" fill="none">
+              <path
+                d="M 20 140 A 72 72 0 1 1 148 140"
+                stroke="#eee"
+                strokeWidth="14"
+                strokeLinecap="round"
+                fill="none"
+              />
+              <path
+                d="M 20 140 A 72 72 0 1 1 148 140"
+                stroke="#9727fc"
+                strokeWidth="14"
+                strokeLinecap="round"
+                fill="none"
+                strokeDasharray={`${arcFraction * 330} 330`}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
               <span className="text-center text-[30px] font-bold leading-none text-[#9727fc]">
                 {score}
               </span>
@@ -144,7 +178,7 @@ function MasteryGauge({ course }: { course: NonNullable<ReturnType<typeof useQue
   )
 }
 
-function AssessmentTable({ assessments }: { assessments: NonNullable<ReturnType<typeof useQuery<typeof api.dashboardCourses.listAssessments>>> }) {
+function AssessmentTable({ assessments }: { assessments: AssessmentList }) {
   const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(assessments.length / ROWS_PER_PAGE))
   const pageRows = assessments.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE)
@@ -268,9 +302,33 @@ function AssessmentTable({ assessments }: { assessments: NonNullable<ReturnType<
 
 export function DashboardCoursesContent() {
   const convexAvailable = useConvexAvailable()
+  if (!convexAvailable) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-y-auto bg-background p-6">
+        <p className="text-center text-sm text-muted-foreground">
+          Convex is not configured. Set NEXT_PUBLIC_CONVEX_URL to enable data.
+        </p>
+      </div>
+    )
+  }
+  return <DashboardCoursesContentInner />
+}
+
+function DashboardCoursesContentInner() {
   const courses = useQuery(api.dashboardCourses.list)
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+
+  const seedCourses = useMutation(api.seedCourses.seed)
+  const [seeding, setSeeding] = useState(false)
+  const handleSeed = async () => {
+    setSeeding(true)
+    try {
+      await seedCourses()
+    } finally {
+      setSeeding(false)
+    }
+  }
 
   const activeCourseId = selectedCourseId ?? courses?.[0]?.courseId ?? null
   const course = useQuery(
@@ -282,18 +340,34 @@ export function DashboardCoursesContent() {
     activeCourseId ? { courseId: activeCourseId } : "skip"
   )
 
-  if (!convexAvailable) {
+  if (!courses) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-        Convex is not configured. Set NEXT_PUBLIC_CONVEX_URL to enable data.
+        Loading courses…
       </div>
     )
   }
 
-  if (!courses || !course || !assessments) {
+  if (courses.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-white p-6">
+        <p className="text-sm text-muted-foreground">No courses found.</p>
+        <button
+          type="button"
+          onClick={handleSeed}
+          disabled={seeding}
+          className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+        >
+          {seeding ? "Seeding…" : "Seed course data"}
+        </button>
+      </div>
+    )
+  }
+
+  if (!course || !assessments) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-        Loading courses…
+        Loading course details…
       </div>
     )
   }
@@ -319,11 +393,20 @@ export function DashboardCoursesContent() {
   return (
     <div className="flex-1 overflow-y-auto bg-white p-6">
       <div className="flex flex-col gap-16">
-        {/* Top section: title + dropdown + stat cards */}
         <div className="flex flex-col gap-4">
-          <h1 className="text-[30px] font-bold leading-normal tracking-[0.6px] text-foreground">
-            AI Fundamentals
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-[30px] font-bold leading-normal tracking-[0.6px] text-foreground">
+              {course.title}
+            </h1>
+            <button
+              type="button"
+              onClick={handleSeed}
+              disabled={seeding}
+              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+            >
+              {seeding ? "Seeding…" : "Seed course data"}
+            </button>
+          </div>
           <div className="relative w-fit">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -380,7 +463,6 @@ export function DashboardCoursesContent() {
           </div>
         </div>
 
-        {/* Cohort Performance Insights */}
         <div className="flex flex-col gap-8">
           <h2 className="text-sm font-semibold tracking-[0.28px] text-black">
             Cohort Performance Insights
