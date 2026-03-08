@@ -63,12 +63,11 @@ export function DashboardForYouContent() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background p-6">
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-[#f0e6ff] via-[#f5eeff] to-[#fafafa] p-6">
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Same top section as Home -> For You */}
-        <div className="relative overflow-hidden px-8 pb-6 pt-10">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#f0e6ff] via-[#f5eeff] to-transparent" />
-          <div className="relative mx-auto max-w-4xl">
+        <div className="px-8 pb-6 pt-10">
+          <div className="mx-auto max-w-4xl">
             <h1 className="text-3xl font-bold text-foreground">Hi Stephanie</h1>
           </div>
         </div>
