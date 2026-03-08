@@ -103,7 +103,7 @@ export function buildDiagnosisLearnerRows<LearnerId extends string>({
       ]
     })
 
-  return rows.toSorted((left, right) => {
+  return [...rows].sort((left, right) => {
     if (left.masteryScore !== right.masteryScore) {
       return left.masteryScore - right.masteryScore
     }

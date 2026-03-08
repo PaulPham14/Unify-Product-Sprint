@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useQuery, useMutation } from "convex/react"
+import { useAction, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import { buildCohortDiagnosisHref } from "@/lib/cohort-diagnosis"
@@ -601,12 +601,12 @@ function DashboardCoursesContentInner() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
-  const seedCourses = useMutation(api.seedCourses.seed)
+  const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
   const [seeding, setSeeding] = useState(false)
   const handleSeed = async () => {
     setSeeding(true)
     try {
-      await seedCourses()
+      await reseedDashboardDemo({})
     } finally {
       setSeeding(false)
     }
@@ -646,7 +646,7 @@ function DashboardCoursesContentInner() {
           disabled={seeding}
           className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
         >
-          {seeding ? "Seeding…" : "Seed course data"}
+          {seeding ? "Reseeding…" : "Reseed demo data"}
         </button>
       </div>
     )
@@ -692,7 +692,7 @@ function DashboardCoursesContentInner() {
               disabled={seeding}
               className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
             >
-              {seeding ? "Seeding…" : "Seed course data"}
+              {seeding ? "Reseeding…" : "Reseed demo data"}
             </button>
           </div>
           <div className="relative w-fit">

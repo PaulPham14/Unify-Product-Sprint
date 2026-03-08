@@ -16,6 +16,7 @@ type ResultLike = {
   maxScore: number;
   attempts?: number | null;
   assignmentWeight?: number | null;
+  confidenceScore?: number | null;
   rubricScore?: number | null;
   instructorApproved?: boolean | null;
   retentionDelayDays?: number | null;
@@ -32,6 +33,7 @@ export type ComputedScores = {
   comprehensionScore: number;
   retentionScore: number;
   behavioralScore: number;
+  insightsScore: number;
   masteryScore: number;
   riskBucket: string;
 };
@@ -118,12 +120,31 @@ export function computeScoresFromResults(
   const avgSessionFreq = results.length
     ? results.reduce((a, r) => a + (r.sessionFrequency ?? 0), 0) / results.length
     : 0;
+  const confidenceResults = results.filter(
+    (result) => result.confidenceScore != null
+  );
+  const avgConfidence = confidenceResults.length
+    ? confidenceResults.reduce((sum, result) => sum + (result.confidenceScore ?? 0), 0) /
+      confidenceResults.length
+    : 70;
   let behaviorScore = 100;
   if (avgInactive > INACTIVE_TAB_THRESHOLD) behaviorScore -= Math.min(40, avgInactive * 80);
   if (daysSinceActive > DISENGAGED_DAYS) behaviorScore -= 40;
   else if (daysSinceActive > 14) behaviorScore -= 20;
   behaviorScore += Math.min(15, (avgSessionFreq / 10) * 15);
   behaviorScore = Math.max(0, Math.min(100, behaviorScore));
+
+  const insightsScore = Math.max(
+    0,
+    Math.min(
+      100,
+      applicationScore * 0.3 +
+        retrievalScore * 0.25 +
+        retentionScore * 0.15 +
+        behaviorScore * 0.2 +
+        avgConfidence * 0.1
+    )
+  );
 
   const masteryScore =
     applicationScore * MASTERY_WEIGHTS.application +
@@ -142,6 +163,7 @@ export function computeScoresFromResults(
     comprehensionScore: Math.round(retrievalScore * 100) / 100,
     retentionScore: Math.round(retentionScore * 100) / 100,
     behavioralScore: Math.round(behaviorScore * 100) / 100,
+    insightsScore: Math.round(insightsScore * 100) / 100,
     masteryScore: Math.round(masteryScore * 100) / 100,
     riskBucket,
   };

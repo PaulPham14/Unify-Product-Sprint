@@ -49,16 +49,29 @@ export const recalculateScoresForUser = mutation({
 
     // Also persist per-course (module) mastery snapshots for cohort-level trend charts.
     const moduleIds = Array.from(new Set(results.map((r) => r.moduleId)));
+    const moduleDocs = await Promise.all(
+      moduleIds.map(async (moduleId) => {
+        const moduleDoc = await ctx.db
+          .query("modules")
+          .withIndex("by_moduleId", (q) => q.eq("moduleId", moduleId))
+          .unique();
+        return [moduleId, moduleDoc] as const;
+      })
+    );
+    const moduleDocMap = new Map(moduleDocs);
     for (const moduleId of moduleIds) {
       const moduleResults = results.filter((r) => r.moduleId === moduleId);
       if (moduleResults.length === 0) continue;
       const perCourse = computeScoresFromResults(moduleResults, user, nowSec);
+      const moduleDoc = moduleDocMap.get(moduleId);
       await ctx.db.insert("course_mastery_history", {
         cohortId: user.cohortId,
+        courseId: moduleDoc?.courseId,
         userId,
         moduleId,
         applicationScore: perCourse.applicationScore,
         comprehensionScore: perCourse.comprehensionScore,
+        insightsScore: perCourse.insightsScore,
         retentionScore: perCourse.retentionScore,
         behavioralScore: perCourse.behavioralScore,
         masteryScore: perCourse.masteryScore,

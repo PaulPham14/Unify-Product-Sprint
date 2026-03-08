@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useQuery, useMutation } from "convex/react"
+import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
@@ -164,7 +164,7 @@ function LearnerInsightsContentInner({
   const displayMastery = Math.min(100, Math.max(0, Math.round(aggregateMastery * 100) / 100))
   const masteryScore = storedMastery != null ? storedMastery : Math.round(aggregateMastery * 100) / 100
   const recalculateScores = useMutation(api.scores.recalculateScoresForUser)
-  const seedCohortMetrics = useMutation(api.seed.seedCohortLearnerMetrics)
+  const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
   const [recalculating, setRecalculating] = useState(false)
   const [seeding, setSeeding] = useState(false)
   const handleRecalculate = async () => {
@@ -179,7 +179,7 @@ function LearnerInsightsContentInner({
   const handleSeedDemoData = async () => {
     setSeeding(true)
     try {
-      await seedCohortMetrics({ cohortId: INSTRUCTOR_COHORT_ID })
+      await reseedDashboardDemo({})
     } finally {
       setSeeding(false)
     }
@@ -259,7 +259,7 @@ function LearnerInsightsContentInner({
             disabled={seeding}
             className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
           >
-            {seeding ? "Seeding…" : "Seed demo data"}
+            {seeding ? "Reseeding…" : "Reseed demo data"}
           </button>
           {selectedLearnerId && selectedLearner?.userId && (
             <button
@@ -276,7 +276,7 @@ function LearnerInsightsContentInner({
         {!selectedLearnerId ? (
           <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 text-center text-muted-foreground">
             <p className="text-sm">Select a learner to view insights.</p>
-            <p className="text-xs">No metrics yet? Click &quot;Seed demo data&quot; to populate task results and scores for all learners in this cohort.</p>
+            <p className="text-xs">No metrics yet? Click &quot;Reseed demo data&quot; to populate task results and scores for all learners in this cohort.</p>
           </div>
         ) : (
           <>

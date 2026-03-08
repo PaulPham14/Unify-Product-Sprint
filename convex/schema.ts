@@ -56,12 +56,18 @@ export default defineSchema({
     cohortId: v.optional(v.string()),
     completedAt: v.float64(),
     conceptIds: v.optional(v.array(v.string())),
+    confidenceScore: v.optional(v.float64()),
+    contentReplayCount: v.optional(v.float64()),
+    courseId: v.optional(v.string()),
     createdAt: v.optional(v.float64()),
+    discussionContributionCount: v.optional(v.float64()),
     dropOffConceptId: v.optional(v.string()),
+    helpRequestCount: v.optional(v.float64()),
     inactiveTabRate: v.optional(v.float64()),
     instructorApproved: v.optional(v.union(v.null(), v.boolean())),
     maxScore: v.float64(),
     moduleId: v.string(),
+    reReadCount: v.optional(v.float64()),
     responseTimeAvgSec: v.optional(v.float64()),
     resultId: v.string(),
     retentionDelayDays: v.optional(v.union(v.null(), v.float64())),
@@ -71,11 +77,13 @@ export default defineSchema({
     sessionFrequency: v.optional(v.float64()),
     taskId: v.string(),
     taskType: v.string(),
+    timeOnTaskSec: v.optional(v.float64()),
     userId: v.string(),
   })
     .index("by_userId", ["userId"])
     .index("by_taskId", ["taskId"])
     .index("by_cohortId", ["cohortId"])
+    .index("by_courseId", ["courseId"])
     .index("by_moduleId", ["moduleId"])
     .index("by_userId_taskId", ["userId", "taskId"]),
 
@@ -114,6 +122,24 @@ export default defineSchema({
     behaviourMax: v.float64(),
   }).index("by_courseId", ["courseId"]),
 
+  course_enrollments: defineTable({
+    cohortId: v.string(),
+    courseId: v.string(),
+    enrolledAt: v.float64(),
+    enrollmentId: v.string(),
+    lastActivityAt: v.float64(),
+    status: v.string(),
+    userId: v.string(),
+    completionPct: v.optional(v.float64()),
+    insightsScore: v.optional(v.float64()),
+    isAtRisk: v.optional(v.boolean()),
+    targetCompletionDate: v.optional(v.string()),
+  })
+    .index("by_courseId", ["courseId"])
+    .index("by_userId", ["userId"])
+    .index("by_cohortId", ["cohortId"])
+    .index("by_courseId_userId", ["courseId", "userId"]),
+
   course_assessments: defineTable({
     courseId: v.string(),
     assessmentType: v.string(),
@@ -141,10 +167,12 @@ export default defineSchema({
 
   course_mastery_history: defineTable({
     cohortId: v.string(),
+    courseId: v.optional(v.string()),
     userId: v.string(),
     moduleId: v.string(),
     applicationScore: v.float64(),
     comprehensionScore: v.float64(),
+    insightsScore: v.optional(v.float64()),
     retentionScore: v.float64(),
     behavioralScore: v.float64(),
     masteryScore: v.float64(),
@@ -152,6 +180,7 @@ export default defineSchema({
     calculatedAt: v.float64(),
   })
     .index("by_cohortId", ["cohortId"])
+    .index("by_courseId", ["courseId"])
     .index("by_userId", ["userId"])
     .index("by_cohortId_moduleId_calculatedAt", ["cohortId", "moduleId", "calculatedAt"]),
 
@@ -173,11 +202,17 @@ export default defineSchema({
     moduleId: v.string(),
     conceptId: v.string(),
     userId: v.string(),
+    applicationScore: v.optional(v.float64()),
     masteryScore: v.float64(),
+    comprehensionScore: v.optional(v.float64()),
     calculatedAt: v.float64(),
+    engagementScore: v.optional(v.float64()),
+    insightsScore: v.optional(v.float64()),
+    isAtRisk: v.optional(v.boolean()),
     /** Time period for filtering, e.g. "2026-01" for January 2026 */
     periodKey: v.string(),
   })
+    .index("by_courseId", ["courseId"])
     .index("by_moduleId", ["moduleId"])
     .index("by_moduleId_periodKey", ["moduleId", "periodKey"])
     .index("by_moduleId_conceptId", ["moduleId", "conceptId"])
@@ -191,10 +226,13 @@ export default defineSchema({
     createdAt: v.float64(),
     email: v.string(),
     insightsScore: v.optional(v.float64()),
+    jobTitle: v.optional(v.string()),
     lastActiveAt: v.optional(v.float64()),
     lastScoreUpdateAt: v.optional(v.float64()),
     masteryScore: v.optional(v.float64()),
     name: v.string(),
+    organization: v.optional(v.string()),
+    personaTag: v.optional(v.string()),
     retentionScore: v.optional(v.float64()),
     riskBucket: v.optional(v.string()),
     riskLevel: v.optional(v.string()),

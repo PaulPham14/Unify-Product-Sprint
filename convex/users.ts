@@ -55,9 +55,12 @@ export const create = mutation({
     behavioralScore: v.optional(v.float64()),
     comprehensionScore: v.optional(v.float64()),
     insightsScore: v.optional(v.float64()),
+    jobTitle: v.optional(v.string()),
     retentionScore: v.optional(v.float64()),
     riskLevel: v.optional(v.string()),
     lastActiveAt: v.optional(v.float64()),
+    organization: v.optional(v.string()),
+    personaTag: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("user", args);
@@ -75,12 +78,15 @@ export const patch = mutation({
     behavioralScore: v.optional(v.float64()),
     comprehensionScore: v.optional(v.float64()),
     insightsScore: v.optional(v.float64()),
+    jobTitle: v.optional(v.string()),
     retentionScore: v.optional(v.float64()),
     riskLevel: v.optional(v.string()),
     riskBucket: v.optional(v.string()),
     masteryScore: v.optional(v.float64()),
     lastScoreUpdateAt: v.optional(v.float64()),
     lastActiveAt: v.optional(v.float64()),
+    organization: v.optional(v.string()),
+    personaTag: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...updates }) => {
     await ctx.db.patch(id, updates);
