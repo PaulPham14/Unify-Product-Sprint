@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useQuery } from "convex/react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ChevronRight } from "lucide-react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import {
@@ -23,6 +23,7 @@ export function DashboardForYouContent() {
   const trend = useQuery(api.cohortMastery.getCourseProgressTrend, {
     cohortId: INSTRUCTOR_COHORT_ID,
   })
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const monthOptions = [
     { value: "march_2026", label: "March 2026" },
@@ -38,6 +39,12 @@ export function DashboardForYouContent() {
     }
     return cfg
   }, [trend?.courses])
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: "smooth" })
+    }
+  }
 
   if (!convexAvailable) {
     return (
@@ -58,6 +65,88 @@ export function DashboardForYouContent() {
   return (
     <div className="flex-1 overflow-y-auto bg-background p-6">
       <div className="mx-auto max-w-6xl space-y-8">
+        {/* Same top section as Home -> For You */}
+        <div className="relative overflow-hidden px-8 pb-6 pt-10">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#f0e6ff] via-[#f5eeff] to-transparent" />
+          <div className="relative mx-auto max-w-4xl">
+            <h1 className="text-3xl font-bold text-foreground">Hi Stephanie</h1>
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-4xl px-8">
+          <section className="mt-2">
+            <h2 className="text-sm font-semibold text-foreground">Jump Back In</h2>
+            <div className="relative mt-3">
+              <div
+                ref={scrollRef}
+                className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+              >
+                <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-500 to-purple-600 p-4">
+                    <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                      Course
+                    </span>
+                    <span className="text-base font-semibold text-white">Zoom</span>
+                  </div>
+                  <div className="flex h-28 w-56 flex-col justify-between p-4">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                      Course
+                    </span>
+                    <div>
+                      <span className="text-sm font-semibold text-foreground">Zoom</span>
+                      <div className="mt-2 flex items-center justify-end gap-2">
+                        <span className="text-xs text-muted-foreground">0%</span>
+                        <div className="h-1.5 w-24 rounded-full bg-secondary">
+                          <div className="h-1.5 rounded-full bg-primary" style={{ width: "0%" }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-400 to-purple-500 p-4">
+                    <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                      Course
+                    </span>
+                    <span className="text-base font-semibold text-white">Unify Taxes</span>
+                  </div>
+                  <div className="flex h-28 w-56 flex-col justify-between p-4">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                      Course
+                    </span>
+                    <div>
+                      <span className="text-sm font-semibold text-foreground">Unify Taxes</span>
+                      <div className="mt-2 flex items-center justify-end gap-2">
+                        <span className="text-xs text-muted-foreground">0%</span>
+                        <div className="h-1.5 w-24 rounded-full bg-secondary">
+                          <div className="h-1.5 rounded-full bg-primary" style={{ width: "0%" }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+                  <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-purple-300 to-violet-400 p-4 opacity-80">
+                    <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                      Course
+                    </span>
+                    <span className="text-base font-semibold text-white">{"U..."}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={scrollRight}
+                className="absolute right-0 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card shadow-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </section>
+        </div>
+
         <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
           Course Performance Insights
         </h2>
