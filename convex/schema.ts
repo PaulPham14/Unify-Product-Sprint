@@ -90,6 +90,40 @@ export default defineSchema({
     .index("by_conceptId", ["conceptId"])
     .index("by_moduleId", ["moduleId"]),
 
+  courses: defineTable({
+    courseId: v.string(),
+    title: v.string(),
+    cohortHealthScore: v.float64(),
+    studentsAtRisk: v.float64(),
+    frictionModules: v.array(v.string()),
+    totalStudents: v.float64(),
+    diagnosisHighMastery: v.float64(),
+    diagnosisOnTrack: v.float64(),
+    diagnosisAtRisk: v.float64(),
+    diagnosisDisengaged: v.float64(),
+    masteryScore: v.float64(),
+    applicationScore: v.float64(),
+    applicationMax: v.float64(),
+    retrievalScore: v.float64(),
+    retrievalMax: v.float64(),
+    retentionScore: v.float64(),
+    retentionMax: v.float64(),
+    behaviourScore: v.float64(),
+    behaviourMax: v.float64(),
+  }).index("by_courseId", ["courseId"]),
+
+  course_assessments: defineTable({
+    courseId: v.string(),
+    assessmentType: v.string(),
+    moduleLesson: v.string(),
+    dueDate: v.float64(),
+    status: v.string(),
+    averageScore: v.optional(v.float64()),
+    order: v.float64(),
+  })
+    .index("by_courseId", ["courseId"])
+    .index("by_courseId_status", ["courseId", "status"]),
+
   user: defineTable({
     applicationScore: v.optional(v.float64()),
     behavioralScore: v.optional(v.float64()),
