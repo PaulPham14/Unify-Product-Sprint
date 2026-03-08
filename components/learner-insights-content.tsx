@@ -18,6 +18,8 @@ import { format } from "date-fns"
 import { MoreHorizontal, ExternalLink, ChevronDown } from "lucide-react"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
+type TrendKey = "Mastery" | "Application" | "Retrieval" | "Retention" | "Behaviour"
+const ALL_TRENDS: TrendKey[] = ["Mastery", "Application", "Retrieval", "Retention", "Behaviour"]
 
 type ImpactLevel = "positive" | "moderate" | "negative"
 
@@ -78,6 +80,7 @@ export function LearnerInsightsContent() {
 function LearnerInsightsContentInner() {
   const [selectedLearnerId, setSelectedLearnerId] = useState<Id<"user"> | "">("")
   const [selectedModuleId, setSelectedModuleId] = useState<string>("all")
+  const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(ALL_TRENDS)
   const [chartMonth, setChartMonth] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
@@ -175,6 +178,16 @@ function LearnerInsightsContentInner() {
     return out
   }, [])
 
+  const toggleTrend = (trend: TrendKey) => {
+    setSelectedTrends((prev) => {
+      if (prev.includes(trend)) {
+        // Keep at least one visible series.
+        return prev.length === 1 ? prev : prev.filter((t) => t !== trend)
+      }
+      return [...prev, trend]
+    })
+  }
+
   return (
     <div className="flex-1 overflow-y-auto bg-background p-6">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -259,6 +272,24 @@ function LearnerInsightsContentInner() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-[12px] font-medium text-black">Trend filter:</span>
+                {ALL_TRENDS.map((trend) => {
+                  const active = selectedTrends.includes(trend)
+                  return (
+                    <button
+                      key={trend}
+                      type="button"
+                      onClick={() => toggleTrend(trend)}
+                      className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                        active ? "bg-black text-white" : "bg-[#eee] text-black hover:bg-[#e2e2e2]"
+                      }`}
+                    >
+                      {trend}
+                    </button>
+                  )
+                })}
+              </div>
               <div className="h-[240px]">
                 <ChartContainer config={chartConfig} className="h-full w-full">
                   <LineChart data={masteryProgressData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
@@ -266,35 +297,55 @@ function LearnerInsightsContentInner() {
                     <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="Mastery" stroke="#9727fc" strokeWidth={2.5} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="Application" stroke="#00bcd4" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="Retrieval" stroke="#ff9800" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="Retention" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="Behaviour" stroke="#6b7280" strokeWidth={2} dot={{ r: 3 }} />
+                    {selectedTrends.includes("Mastery") && (
+                      <Line type="monotone" dataKey="Mastery" stroke="#9727fc" strokeWidth={2.5} dot={{ r: 3 }} />
+                    )}
+                    {selectedTrends.includes("Application") && (
+                      <Line type="monotone" dataKey="Application" stroke="#00bcd4" strokeWidth={2} dot={{ r: 3 }} />
+                    )}
+                    {selectedTrends.includes("Retrieval") && (
+                      <Line type="monotone" dataKey="Retrieval" stroke="#ff9800" strokeWidth={2} dot={{ r: 3 }} />
+                    )}
+                    {selectedTrends.includes("Retention") && (
+                      <Line type="monotone" dataKey="Retention" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                    )}
+                    {selectedTrends.includes("Behaviour") && (
+                      <Line type="monotone" dataKey="Behaviour" stroke="#6b7280" strokeWidth={2} dot={{ r: 3 }} />
+                    )}
                   </LineChart>
                 </ChartContainer>
               </div>
               <div className="mt-2 flex flex-wrap items-center justify-center gap-5">
-                <span className="flex items-center gap-1.5 text-[12px] text-black">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[#9727fc]" />
-                  Mastery
-                </span>
-                <span className="flex items-center gap-1.5 text-[12px] text-black">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[#00bcd4]" />
-                  Application
-                </span>
-                <span className="flex items-center gap-1.5 text-[12px] text-black">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[#ff9800]" />
-                  Retrieval
-                </span>
-                <span className="flex items-center gap-1.5 text-[12px] text-black">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[#ef4444]" />
-                  Retention
-                </span>
-                <span className="flex items-center gap-1.5 text-[12px] text-black">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-[#6b7280]" />
-                  Behaviour
-                </span>
+                {selectedTrends.includes("Mastery") && (
+                  <span className="flex items-center gap-1.5 text-[12px] text-black">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-[#9727fc]" />
+                    Mastery
+                  </span>
+                )}
+                {selectedTrends.includes("Application") && (
+                  <span className="flex items-center gap-1.5 text-[12px] text-black">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-[#00bcd4]" />
+                    Application
+                  </span>
+                )}
+                {selectedTrends.includes("Retrieval") && (
+                  <span className="flex items-center gap-1.5 text-[12px] text-black">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-[#ff9800]" />
+                    Retrieval
+                  </span>
+                )}
+                {selectedTrends.includes("Retention") && (
+                  <span className="flex items-center gap-1.5 text-[12px] text-black">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-[#ef4444]" />
+                    Retention
+                  </span>
+                )}
+                {selectedTrends.includes("Behaviour") && (
+                  <span className="flex items-center gap-1.5 text-[12px] text-black">
+                    <span className="h-2.5 w-2.5 rounded-sm bg-[#6b7280]" />
+                    Behaviour
+                  </span>
+                )}
               </div>
             </section>
 
