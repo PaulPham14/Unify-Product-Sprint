@@ -63,12 +63,12 @@ export function DashboardForYouContent() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-[#f0e6ff] via-[#f5eeff] to-[#fafafa] p-6">
+    <div className="flex-1 overflow-y-auto bg-white p-6">
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Same top section as Home -> For You */}
         <div className="px-8 pb-6 pt-10">
           <div className="mx-auto max-w-4xl">
-            <h1 className="text-3xl font-bold text-foreground">Hi Stephanie</h1>
+            <h1 className="text-3xl font-bold text-foreground">Hi Kasey</h1>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export function DashboardForYouContent() {
 
         <section className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-[14px] font-medium text-black">Cohort Progress</span>
+            <span className="text-[14px] font-medium text-black">Course Progress</span>
             <Select value={month} onValueChange={setMonth}>
               <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
                 <SelectValue />
