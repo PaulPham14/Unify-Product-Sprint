@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
@@ -16,8 +16,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
-  ExternalLink,
   Pointer,
   X,
 } from "lucide-react"
@@ -66,6 +64,7 @@ type ModuleInsightList = NonNullable<
 type DashboardConfig = CourseDoc["dashboardConfig"]
 type MasteryWeightFormField = "application" | "retrieval" | "retention" | "behaviour"
 type DiagnosisRangeFormField = "highMastery" | "onTrack" | "atRisk" | "disengaged"
+type DiagnosisRangeBound = "min" | "max"
 
 function formatCompactNumber(value: number) {
   const normalized = Number.isInteger(value) ? value : Number(value.toFixed(2))
@@ -83,17 +82,15 @@ function parsePercentValue(value: string) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function formatRangeValue(min: number, max: number) {
-  return `${formatCompactNumber(min)} - ${formatCompactNumber(max)}`
+function formatIntegerValue(value: number) {
+  return String(Math.round(value))
 }
 
-function parseRangeValue(value: string) {
-  const match = value.trim().match(/^(-?\d+)\s*[-–]\s*(-?\d+)$/)
-  if (!match) return null
-  const min = Number(match[1])
-  const max = Number(match[2])
-  if (!Number.isInteger(min) || !Number.isInteger(max)) return null
-  return { min, max }
+function parseIntegerValue(value: string) {
+  const normalized = value.trim()
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  return Number.isInteger(parsed) ? parsed : null
 }
 
 function buildMasteryFormValues(config?: DashboardConfig) {
@@ -110,10 +107,22 @@ function buildDiagnosisFormValues(config?: DashboardConfig) {
   const defaults = config ?? getDefaultCourseDashboardConfig()
   const { highMasteryMin, onTrackMin, atRiskMin } = defaults.diagnosisThresholds
   return {
-    highMastery: formatRangeValue(highMasteryMin, 100),
-    onTrack: formatRangeValue(onTrackMin, highMasteryMin - 1),
-    atRisk: formatRangeValue(atRiskMin, onTrackMin - 1),
-    disengaged: formatRangeValue(0, atRiskMin - 1),
+    highMastery: {
+      min: formatIntegerValue(highMasteryMin),
+      max: formatIntegerValue(100),
+    },
+    onTrack: {
+      min: formatIntegerValue(onTrackMin),
+      max: formatIntegerValue(highMasteryMin - 1),
+    },
+    atRisk: {
+      min: formatIntegerValue(atRiskMin),
+      max: formatIntegerValue(onTrackMin - 1),
+    },
+    disengaged: {
+      min: formatIntegerValue(0),
+      max: formatIntegerValue(atRiskMin - 1),
+    },
   }
 }
 
@@ -160,20 +169,32 @@ function getMasteryValidation(formValues: ReturnType<typeof buildMasteryFormValu
 
 function getDiagnosisValidation(formValues: ReturnType<typeof buildDiagnosisFormValues>) {
   const parsed = {
-    highMastery: parseRangeValue(formValues.highMastery),
-    onTrack: parseRangeValue(formValues.onTrack),
-    atRisk: parseRangeValue(formValues.atRisk),
-    disengaged: parseRangeValue(formValues.disengaged),
+    highMastery: {
+      min: parseIntegerValue(formValues.highMastery.min),
+      max: parseIntegerValue(formValues.highMastery.max),
+    },
+    onTrack: {
+      min: parseIntegerValue(formValues.onTrack.min),
+      max: parseIntegerValue(formValues.onTrack.max),
+    },
+    atRisk: {
+      min: parseIntegerValue(formValues.atRisk.min),
+      max: parseIntegerValue(formValues.atRisk.max),
+    },
+    disengaged: {
+      min: parseIntegerValue(formValues.disengaged.min),
+      max: parseIntegerValue(formValues.disengaged.max),
+    },
   }
 
-  if (Object.values(parsed).some((value) => value == null)) {
-    return { error: "Enter each range as `min - max`." }
+  if (Object.values(parsed).some((value) => value.min == null || value.max == null)) {
+    return { error: "Enter a minimum and maximum score for each category." }
   }
 
-  const highMastery = parsed.highMastery!
-  const onTrack = parsed.onTrack!
-  const atRisk = parsed.atRisk!
-  const disengaged = parsed.disengaged!
+  const highMastery = parsed.highMastery as { min: number; max: number }
+  const onTrack = parsed.onTrack as { min: number; max: number }
+  const atRisk = parsed.atRisk as { min: number; max: number }
+  const disengaged = parsed.disengaged as { min: number; max: number }
   const ranges = [highMastery, onTrack, atRisk, disengaged]
 
   if (ranges.some(({ min, max }) => min < 0 || max > 100 || min > max)) {
@@ -245,17 +266,20 @@ function MonthSelector() {
 function CompactConfigInput({
   value,
   widthClassName,
+  placeholder,
   onChange,
   onBlur,
 }: {
   value: string
   widthClassName: string
+  placeholder?: string
   onChange: (value: string) => void
   onBlur: () => void
 }) {
   return (
     <Input
       value={value}
+      placeholder={placeholder}
       onChange={(event) => onChange(event.target.value)}
       onBlur={onBlur}
       type="text"
@@ -327,7 +351,7 @@ function MasteryWeightingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[316px] max-w-[calc(100%-2rem)] gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 shadow-lg"
+        className="w-[384px] max-w-[calc(100%-2rem)] gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-5 shadow-lg"
       >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-[14px] font-medium text-black">
@@ -408,17 +432,30 @@ function DiagnosisWeightingDialog({
 
   const validation = useMemo(() => getDiagnosisValidation(formValues), [formValues])
 
-  const handleFieldChange = (field: DiagnosisRangeFormField, value: string) => {
+  const handleFieldChange = (
+    field: DiagnosisRangeFormField,
+    bound: DiagnosisRangeBound,
+    value: string
+  ) => {
     setSaveError(null)
-    setFormValues((current) => ({ ...current, [field]: value }))
-  }
-
-  const handleFieldBlur = (field: DiagnosisRangeFormField) => {
-    const parsed = parseRangeValue(formValues[field])
-    if (!parsed) return
     setFormValues((current) => ({
       ...current,
-      [field]: formatRangeValue(parsed.min, parsed.max),
+      [field]: {
+        ...current[field],
+        [bound]: value,
+      },
+    }))
+  }
+
+  const handleFieldBlur = (field: DiagnosisRangeFormField, bound: DiagnosisRangeBound) => {
+    const parsed = parseIntegerValue(formValues[field][bound])
+    if (parsed == null) return
+    setFormValues((current) => ({
+      ...current,
+      [field]: {
+        ...current[field],
+        [bound]: formatIntegerValue(parsed),
+      },
     }))
   }
 
@@ -450,7 +487,7 @@ function DiagnosisWeightingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[316px] max-w-[calc(100%-2rem)] gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 shadow-lg"
+        className="w-[392px] max-w-[calc(100%-2rem)] gap-5 rounded-[14px] border-2 border-[#eee] bg-white p-5 shadow-lg"
       >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-[14px] font-medium text-black">
@@ -466,27 +503,36 @@ function DiagnosisWeightingDialog({
           </button>
         </div>
 
-        <div className="flex w-full flex-col gap-[10px]">
+        <div className="grid w-full grid-cols-[minmax(0,1fr)_56px_18px_56px] items-center gap-x-2 gap-y-[10px]">
           {rows.map((row) => (
-            <div key={row.key} className="flex flex-col gap-[10px]">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-medium tracking-[0.513px] text-black/70">
-                  {row.label}
-                </span>
-                <CompactConfigInput
-                  value={formValues[row.key]}
-                  onChange={(value) => handleFieldChange(row.key, value)}
-                  onBlur={() => handleFieldBlur(row.key)}
-                  widthClassName="w-[74px]"
-                />
-              </div>
-              <div className="h-px w-full bg-[#d9d9d9]" />
+            <div key={row.key} className="contents">
+              <span className="text-[12px] font-medium tracking-[0.513px] text-black/70">
+                {row.label}
+              </span>
+              <CompactConfigInput
+                value={formValues[row.key].min}
+                placeholder="Min"
+                onChange={(value) => handleFieldChange(row.key, "min", value)}
+                onBlur={() => handleFieldBlur(row.key, "min")}
+                widthClassName="w-[56px]"
+              />
+              <span className="text-center text-[11px] font-medium text-black/45">-</span>
+              <CompactConfigInput
+                value={formValues[row.key].max}
+                placeholder="Max"
+                onChange={(value) => handleFieldChange(row.key, "max", value)}
+                onBlur={() => handleFieldBlur(row.key, "max")}
+                widthClassName="w-[56px]"
+              />
+              <div className="col-span-4 h-px w-full bg-[#d9d9d9]" />
             </div>
           ))}
         </div>
 
-        <div className="flex w-full items-center justify-between gap-4">
-          <p className={`text-[11px] ${saveError || validation.error ? "text-[#d1001f]" : "text-[#5b5b5b]"}`}>
+        <div className="flex w-full items-end justify-between gap-4">
+          <p
+            className={`flex-1 text-[11px] leading-[1.4] ${saveError || validation.error ? "text-[#d1001f]" : "text-[#5b5b5b]"}`}
+          >
             {saveError ?? validation.error ?? "Ranges cover 0 to 100 without gaps."}
           </p>
           <Button
@@ -1048,10 +1094,7 @@ function DashboardCoursesContentInner() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [masteryDialogOpen, setMasteryDialogOpen] = useState(false)
   const [diagnosisDialogOpen, setDiagnosisDialogOpen] = useState(false)
-  const backfillStartedRef = useRef(false)
-
   const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
-  const backfillCourseDashboardConfigs = useMutation(api.dashboardCourses.backfillCourseDashboardConfigs)
   const [seeding, setSeeding] = useState(false)
   const handleSeed = async () => {
     setSeeding(true)
@@ -1077,14 +1120,6 @@ function DashboardCoursesContentInner() {
     api.dashboardCourses.listModuleInsights,
     activeCourseId ? { courseId: activeCourseId } : "skip"
   )
-
-  useEffect(() => {
-    if (!courses?.length || backfillStartedRef.current) return
-    backfillStartedRef.current = true
-    void backfillCourseDashboardConfigs({}).catch(() => {
-      backfillStartedRef.current = false
-    })
-  }, [backfillCourseDashboardConfigs, courses])
 
   if (!courses) {
     return (
@@ -1205,13 +1240,6 @@ function DashboardCoursesContentInner() {
                   <span className="text-[30px] font-bold leading-none text-[#9727fc]">
                     {stat.value}
                   </span>
-                  <button className="text-[#5b5b5b] hover:text-black">
-                    {stat.action === "menu" ? (
-                      <MoreHorizontal className="h-4 w-4" />
-                    ) : (
-                      <ExternalLink className="h-4 w-4" />
-                    )}
-                  </button>
                 </div>
                 <span className="mt-6 text-sm font-medium text-[#5b5b5b]">
                   {stat.label}

@@ -71,9 +71,19 @@ export const listLearnersByCourseAndSegment = query({
       nowSec: Date.now() / 1000,
     })
 
+    const serializedRows = rows.map((row) => ({
+      learnerId: row.learnerId,
+      externalUserId: row.externalUserId,
+      learnerName: row.learnerName,
+      masteryScore: row.masteryScore,
+      riskBucket: row.riskBucket,
+      snapshotCount: row.snapshotCount,
+      latestCalculatedAt: row.latestCalculatedAt,
+    }))
+
     return {
-      rows,
-      totalCount: rows.length,
+      rows: serializedRows,
+      totalCount: serializedRows.length,
     }
   },
 })
