@@ -209,8 +209,8 @@ export default defineSchema({
     engagementScore: v.optional(v.float64()),
     insightsScore: v.optional(v.float64()),
     isAtRisk: v.optional(v.boolean()),
-    /** Time period for filtering, e.g. "2026-01" for January 2026 */
-    periodKey: v.string(),
+    /** Time period for filtering, e.g. "2026-01" for January 2026. Optional for backwards compatibility. */
+    periodKey: v.optional(v.string()),
   })
     .index("by_courseId", ["courseId"])
     .index("by_moduleId", ["moduleId"])

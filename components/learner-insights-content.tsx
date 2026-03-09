@@ -15,7 +15,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { format } from "date-fns"
-import { MoreHorizontal, ExternalLink, ChevronDown } from "lucide-react"
+import { MoreHorizontal, ExternalLink, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
 type TrendKey = "Mastery" | "Application" | "Retrieval" | "Retention" | "Behaviour"
@@ -59,6 +59,57 @@ function masteryPillStyle(aggregate: number): string {
   return "bg-[#ffddd9] text-[#d1001f]"
 }
 
+interface AtRiskAttentionItem {
+  learnerId: unknown;
+  learnerName: string;
+  masteryScore: number;
+  riskBucket: string;
+  moduleLabel: string;
+  quizScorePct: number | null;
+  videoReplayCount: number | null;
+  assignmentIncomplete: boolean;
+  insights: string[];
+}
+
+function AtRiskAttentionCard({ data }: { data: AtRiskAttentionItem }) {
+  const [expanded, setExpanded] = useState(true)
+  const name = data.learnerName
+  const moduleLabel = data.moduleLabel || "this module"
+
+  return (
+    <section className="rounded-[14px] border-2 border-[#d40e2b] bg-white p-4">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="flex w-full items-start justify-between gap-4 text-left"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <ShieldAlert className="h-6 w-6 shrink-0 text-[#d40e2b]" aria-hidden />
+          <span className="text-sm font-medium text-[#d40e2b]">Attention</span>
+          <span className="text-sm font-medium text-black">
+            {name} may not understand the core concept from {moduleLabel}
+          </span>
+          <span className="text-xs text-[#5b5b5b]">
+            Mastery {data.masteryScore}% · {data.riskBucket === "disengaged" ? "Disengaged" : "At risk"}
+          </span>
+        </div>
+        <span className="shrink-0 text-black">
+          {expanded ? <ChevronUp className="h-6 w-6" /> : <ChevronDown className="h-6 w-6" />}
+        </span>
+      </button>
+      {expanded && (
+        <div className="mt-4 rounded-[14px] bg-[#fff3f3] p-3">
+          <ul className="flex flex-col gap-2 text-sm font-medium text-black list-disc pl-5">
+            {data.insights.map((insight, i) => (
+              <li key={i}>{insight}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function LearnerInsightsContent({
   initialLearnerId = null,
 }: {
@@ -90,20 +141,18 @@ function LearnerInsightsContentInner({
   const [selectedLearnerId, setSelectedLearnerId] = useState<Id<"user"> | "">(
     initialLearnerId ? (initialLearnerId as Id<"user">) : ""
   )
-  const [selectedModuleId, setSelectedModuleId] = useState<string>("all")
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("all")
   const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(["Mastery"])
   const [progressRange, setProgressRange] = useState<ProgressRange>("all")
-  const [chartMonth, setChartMonth] = useState(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-  })
 
   const cohortLearners = useQuery(api.users.listByCohort, {
     cohortId: INSTRUCTOR_COHORT_ID,
   })
-  const modules = useQuery(api.modules.listByCohort, {
-    cohortId: INSTRUCTOR_COHORT_ID,
-  })
+  const courses = useQuery(api.dashboardCourses.list, {})
+  const lowestPerformingAttention = useQuery(
+    api.dashboardCourses.getLowestPerformingAttention,
+    { cohortId: INSTRUCTOR_COHORT_ID, courseId: selectedCourseId === "all" ? undefined : selectedCourseId }
+  )
   const selectedLearner = useQuery(
     api.users.get,
     selectedLearnerId ? { id: selectedLearnerId } : "skip"
@@ -196,19 +245,6 @@ function LearnerInsightsContentInner({
     []
   )
 
-  const monthOptions = useMemo(() => {
-    const out: { value: string; label: string }[] = []
-    const now = new Date()
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      out.push({
-        value: format(d, "yyyy-MM"),
-        label: format(d, "MMMM yyyy"),
-      })
-    }
-    return out
-  }, [])
-
   const toggleTrend = (trend: TrendKey) => {
     setSelectedTrends((prev) => {
       if (prev.includes(trend)) {
@@ -224,15 +260,15 @@ function LearnerInsightsContentInner({
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Top: Course + Student dropdowns, then actions */}
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={selectedModuleId} onValueChange={setSelectedModuleId}>
+          <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Course / Module" />
+              <SelectValue placeholder="Course breakdown" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All modules</SelectItem>
-              {modules?.map((m) => (
-                <SelectItem key={m.moduleId} value={m.moduleId}>
-                  {m.title}
+              <SelectItem value="all">All courses</SelectItem>
+              {courses?.map((c) => (
+                <SelectItem key={c.courseId} value={c.courseId}>
+                  {c.title}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -284,6 +320,37 @@ function LearnerInsightsContentInner({
             <h1 className="text-center text-xl font-bold text-foreground">
               Individual Performance Insights
             </h1>
+
+            {/* Attention — only for the selected learner when they are at risk */}
+            {lowestPerformingAttention?.filter((item) => item.learnerId === selectedLearnerId).length ? (
+              <section className="space-y-4">
+                <h2 className="text-sm font-medium text-foreground">Attention</h2>
+                {lowestPerformingAttention
+                  .filter((item) => item.learnerId === selectedLearnerId)
+                  .map((item) => (
+                    <AtRiskAttentionCard key={String(item.learnerId)} data={item} />
+                  ))}
+              </section>
+            ) : null}
+
+            {/* Action To Take — at top */}
+            <section>
+              <h2 className="mb-3 text-sm font-medium text-foreground">Action To Take</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4" />
+                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4 flex items-center justify-center">
+                  <MoreHorizontal className="h-6 w-6 text-muted-foreground" />
+                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4">
+                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+            </section>
 
             {/* Mastery Score Progression — full-width chart on top */}
             <section className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
@@ -381,27 +448,13 @@ function LearnerInsightsContentInner({
 
             {/* Mastery Score — exact Figma layout */}
             <section className="flex flex-col items-center gap-4 rounded-[14px] border-2 border-[#eee] bg-white px-6 py-5">
-              {/* Title & month selector */}
               <div className="flex w-full items-center justify-between">
                 <span className="text-[14px] font-medium text-black">Mastery Score</span>
-                <Select value={chartMonth} onValueChange={setChartMonth}>
-                  <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
-                    <SelectValue />
-                    <ChevronDown className="h-5 w-5 shrink-0 text-black" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {monthOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Gauge + breakdown + pills row */}
               <div className="flex w-full items-end justify-between">
-                <div className="flex items-center gap-10">
+                <div className="ml-12 flex items-center gap-10">
                   {/* Gauge */}
                   <div className="relative ml-2 h-[166px] w-[168px] shrink-0">
                     <svg className="h-full w-full" viewBox="0 0 168 166" fill="none">
@@ -506,25 +559,6 @@ function LearnerInsightsContentInner({
                     "Discussion engagement " + (behaviourScore >= 65 ? "good" : "low"),
                   ]}
                 />
-              </div>
-            </section>
-
-            {/* Action To Take placeholder */}
-            <section>
-              <h2 className="mb-3 text-sm font-medium text-foreground">Action To Take</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4" />
-                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4 flex items-center justify-center">
-                  <MoreHorizontal className="h-6 w-6 text-muted-foreground" />
-                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4">
-                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
               </div>
             </section>
           </>
