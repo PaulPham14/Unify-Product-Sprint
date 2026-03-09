@@ -9,6 +9,7 @@ import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import { DashboardRouteShell } from "@/components/dashboard/dashboard-route-shell"
 import { buildDashboardHref } from "@/lib/dashboard-route-state"
 import { ChevronDown, ChevronLeft, ExternalLink } from "lucide-react"
+import { ActionModal, type ActionModalVariant } from "@/components/assign-review-quiz-modal"
 import {
   Area,
   AreaChart,
@@ -103,6 +104,16 @@ function ModuleInsightContent() {
     api.dashboardCourses.listConceptMasteryByModule,
     moduleId ? { moduleId } : "skip"
   )
+  const cohortLearners = useQuery(api.users.listByCohort, { cohortId: "cohort_ai_001" })
+  const coursesForModal = useQuery(api.dashboardCourses.list, {})
+  const [activeModal, setActiveModal] = useState<ActionModalVariant | null>(null)
+
+  const modalLearners = useMemo(() => {
+    if (!cohortLearners) return []
+    return cohortLearners
+      .filter((u) => u.role === "learner")
+      .map((l) => ({ _id: l._id, name: l.name, masteryScore: l.masteryScore, riskBucket: l.riskBucket }))
+  }, [cohortLearners])
 
   const [selectedConceptId, setSelectedConceptId] = useState("")
   useEffect(() => {
@@ -227,27 +238,29 @@ function ModuleInsightContent() {
           <section className="flex flex-col gap-4">
             <h2 className="text-sm font-bold text-black">Recommended Actions To Take</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              {RECOMMENDED_ACTIONS_PLACEHOLDER.map((item, i) => (
-                <div
-                  key={i}
-                  className="relative rounded-[14px] border border-[#eee] bg-[#f9f9f9] p-5"
-                >
+              {RECOMMENDED_ACTIONS_PLACEHOLDER.map((item, i) => {
+                const variant: ActionModalVariant | null =
+                  item.action === "Assign review quiz" ? "review_quiz"
+                  : item.action === "Send concept walkthrough" ? "concept_walkthrough"
+                  : item.action === "Schedule office hours" ? "office_hours"
+                  : null
+                return (
                   <button
+                    key={i}
                     type="button"
-                    className="absolute right-3 top-3 text-[#5b5b5b] hover:text-black"
-                    aria-label="Open action"
+                    onClick={variant ? () => setActiveModal(variant) : undefined}
+                    className="relative rounded-[14px] border border-[#eee] bg-[#f9f9f9] p-5 text-left transition-shadow hover:shadow-md"
                   >
-                    <ExternalLink className="h-4 w-4" />
+                    <span className="absolute right-3 top-3 text-[#5b5b5b]">
+                      <ExternalLink className="h-4 w-4" />
+                    </span>
+                    <p className="text-sm font-semibold text-black">{item.title}</p>
+                    <span className="mt-2 block text-xs font-medium text-[#9727fc] underline hover:no-underline">
+                      {item.action}
+                    </span>
                   </button>
-                  <p className="text-sm font-semibold text-black">{item.title}</p>
-                  <button
-                    type="button"
-                    className="mt-2 text-xs font-medium text-[#9727fc] underline hover:no-underline"
-                  >
-                    {item.action}
-                  </button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </section>
 
@@ -414,6 +427,23 @@ function ModuleInsightContent() {
           )}
         </div>
       </div>
+
+      {activeModal && (
+        <ActionModal
+          open
+          variant={activeModal}
+          onClose={() => setActiveModal(null)}
+          learners={modalLearners}
+          courses={coursesForModal ?? undefined}
+          modules={sortedModules.map((m) => ({
+            moduleId: m.moduleId,
+            title: m.title,
+            courseId: m.courseId,
+          }))}
+          defaultCourseId={courseId}
+          defaultModuleId={moduleId}
+        />
+      )}
     </div>
   )
 }

@@ -17,6 +17,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { format } from "date-fns"
 import { MoreHorizontal, ExternalLink, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react"
+import { ActionModal, type ActionModalVariant } from "@/components/assign-review-quiz-modal"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
 type TrendKey = "Mastery" | "Application" | "Retrieval" | "Retention" | "Behaviour"
@@ -162,6 +163,8 @@ function LearnerInsightsContentInner({
     api.scoreHistory.listByUser,
     selectedLearner?.userId ? { userId: selectedLearner.userId } : "skip"
   )
+  const allModules = useQuery(api.modules.listByCohort, { cohortId: INSTRUCTOR_COHORT_ID })
+  const [activeModal, setActiveModal] = useState<ActionModalVariant | null>(null)
 
   const learners = useMemo(() => {
     if (!cohortLearners) return []
@@ -340,22 +343,45 @@ function LearnerInsightsContentInner({
               </section>
             ) : null}
 
-            {/* Action To Take — at top */}
-            <section>
-              <h2 className="mb-3 text-sm font-medium text-foreground">Action To Take</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4" />
-                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4 flex items-center justify-center">
-                  <MoreHorizontal className="h-6 w-6 text-muted-foreground" />
-                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-                <div className="relative min-h-[100px] rounded-lg border border-border bg-card p-4">
-                  <a href="#" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground" aria-label="Open">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
+            {/* Recommended Actions To Take — Figma 82:6207 */}
+            <section className="flex flex-col gap-4">
+              <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
+                Recommended Actions To Take
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal("review_quiz")}
+                  className="relative flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px] font-medium text-black">Retrieval Practice</span>
+                    <ExternalLink className="h-4 w-4 text-[#5b5b5b]" />
+                  </div>
+                  <span className="text-[18px] font-semibold text-[#7f23ff]">Assign review quiz</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal("concept_walkthrough")}
+                  className="relative flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px] font-medium text-black">Retention</span>
+                    <ExternalLink className="h-4 w-4 text-[#5b5b5b]" />
+                  </div>
+                  <span className="text-[18px] font-semibold text-[#7f23ff]">Send concept walkthrough</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal("office_hours")}
+                  className="relative flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px] font-medium text-black">Human-in-the-Loop</span>
+                    <ExternalLink className="h-4 w-4 text-[#5b5b5b]" />
+                  </div>
+                  <span className="text-[18px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                </button>
               </div>
             </section>
 
@@ -571,6 +597,26 @@ function LearnerInsightsContentInner({
           </>
         )}
       </div>
+
+      {activeModal && (
+        <ActionModal
+          open
+          variant={activeModal}
+          onClose={() => setActiveModal(null)}
+          learners={learners.map((l) => ({
+            _id: l._id,
+            name: l.name,
+            masteryScore: l.masteryScore,
+            riskBucket: l.riskBucket,
+          }))}
+          courses={courses ?? undefined}
+          modules={allModules?.map((m) => ({
+            moduleId: m.moduleId,
+            title: m.title,
+            courseId: m.courseId,
+          })) ?? undefined}
+        />
+      )}
     </div>
   )
 }
