@@ -1,14 +1,26 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { useAction, useQuery } from "convex/react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import { buildCohortDiagnosisHref } from "@/lib/cohort-diagnosis"
+import { getDefaultCourseDashboardConfig } from "@/convex/scoreUtils"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
-import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, ExternalLink, Pointer } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  ExternalLink,
+  Pointer,
+  X,
+} from "lucide-react"
 
 const ROWS_PER_PAGE = 6
 
@@ -51,6 +63,153 @@ type ModuleInsightList = NonNullable<
   ReturnType<typeof useQuery<typeof api.dashboardCourses.listModuleInsights>>
 >
 
+type DashboardConfig = CourseDoc["dashboardConfig"]
+type MasteryWeightFormField = "application" | "retrieval" | "retention" | "behaviour"
+type DiagnosisRangeFormField = "highMastery" | "onTrack" | "atRisk" | "disengaged"
+
+function formatCompactNumber(value: number) {
+  const normalized = Number.isInteger(value) ? value : Number(value.toFixed(2))
+  return String(normalized)
+}
+
+function formatPercentValue(value: number) {
+  return `${formatCompactNumber(value)}%`
+}
+
+function parsePercentValue(value: string) {
+  const normalized = value.replaceAll("%", "").trim()
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatRangeValue(min: number, max: number) {
+  return `${formatCompactNumber(min)} - ${formatCompactNumber(max)}`
+}
+
+function parseRangeValue(value: string) {
+  const match = value.trim().match(/^(-?\d+)\s*[-–]\s*(-?\d+)$/)
+  if (!match) return null
+  const min = Number(match[1])
+  const max = Number(match[2])
+  if (!Number.isInteger(min) || !Number.isInteger(max)) return null
+  return { min, max }
+}
+
+function buildMasteryFormValues(config?: DashboardConfig) {
+  const defaults = config ?? getDefaultCourseDashboardConfig()
+  return {
+    application: formatPercentValue(defaults.masteryWeights.applicationPct),
+    retrieval: formatPercentValue(defaults.masteryWeights.retrievalPct),
+    retention: formatPercentValue(defaults.masteryWeights.retentionPct),
+    behaviour: formatPercentValue(defaults.masteryWeights.behaviourPct),
+  }
+}
+
+function buildDiagnosisFormValues(config?: DashboardConfig) {
+  const defaults = config ?? getDefaultCourseDashboardConfig()
+  const { highMasteryMin, onTrackMin, atRiskMin } = defaults.diagnosisThresholds
+  return {
+    highMastery: formatRangeValue(highMasteryMin, 100),
+    onTrack: formatRangeValue(onTrackMin, highMasteryMin - 1),
+    atRisk: formatRangeValue(atRiskMin, onTrackMin - 1),
+    disengaged: formatRangeValue(0, atRiskMin - 1),
+  }
+}
+
+function getMasteryValidation(formValues: ReturnType<typeof buildMasteryFormValues>) {
+  const weights = {
+    applicationPct: parsePercentValue(formValues.application),
+    retrievalPct: parsePercentValue(formValues.retrieval),
+    retentionPct: parsePercentValue(formValues.retention),
+    behaviourPct: parsePercentValue(formValues.behaviour),
+  }
+
+  if (Object.values(weights).some((value) => value == null)) {
+    return { total: null, error: "Enter a percentage for each weighting." }
+  }
+
+  if (Object.values(weights).some((value) => (value ?? 0) < 0 || (value ?? 0) > 100)) {
+    return { total: null, error: "Percentages must stay between 0% and 100%." }
+  }
+
+  const total =
+    (weights.applicationPct ?? 0) +
+    (weights.retrievalPct ?? 0) +
+    (weights.retentionPct ?? 0) +
+    (weights.behaviourPct ?? 0)
+
+  if (Math.round(total * 100) / 100 !== 100) {
+    return {
+      total,
+      error: `Total must equal 100%. Current total: ${formatCompactNumber(total)}%.`,
+    }
+  }
+
+  return {
+    total,
+    error: null,
+    masteryWeights: {
+      applicationPct: weights.applicationPct ?? 0,
+      retrievalPct: weights.retrievalPct ?? 0,
+      retentionPct: weights.retentionPct ?? 0,
+      behaviourPct: weights.behaviourPct ?? 0,
+    },
+  }
+}
+
+function getDiagnosisValidation(formValues: ReturnType<typeof buildDiagnosisFormValues>) {
+  const parsed = {
+    highMastery: parseRangeValue(formValues.highMastery),
+    onTrack: parseRangeValue(formValues.onTrack),
+    atRisk: parseRangeValue(formValues.atRisk),
+    disengaged: parseRangeValue(formValues.disengaged),
+  }
+
+  if (Object.values(parsed).some((value) => value == null)) {
+    return { error: "Enter each range as `min - max`." }
+  }
+
+  const highMastery = parsed.highMastery!
+  const onTrack = parsed.onTrack!
+  const atRisk = parsed.atRisk!
+  const disengaged = parsed.disengaged!
+  const ranges = [highMastery, onTrack, atRisk, disengaged]
+
+  if (ranges.some(({ min, max }) => min < 0 || max > 100 || min > max)) {
+    return { error: "Ranges must stay within 0 to 100 and keep min <= max." }
+  }
+
+  if (highMastery.max !== 100 || disengaged.min !== 0) {
+    return { error: "Ranges must cover the full 0 to 100 score span." }
+  }
+
+  if (
+    highMastery.min <= onTrack.min ||
+    onTrack.min <= atRisk.min ||
+    atRisk.min <= disengaged.min
+  ) {
+    return { error: "Category minimums must descend from High Mastery to Disengaged." }
+  }
+
+  if (
+    onTrack.max !== highMastery.min - 1 ||
+    atRisk.max !== onTrack.min - 1 ||
+    disengaged.max !== atRisk.min - 1
+  ) {
+    return { error: "Ranges must not overlap or leave gaps." }
+  }
+
+  return {
+    error: null,
+    diagnosisThresholds: {
+      highMasteryMin: highMastery.min,
+      onTrackMin: onTrack.min,
+      atRiskMin: atRisk.min,
+    },
+  }
+}
+
 function formatDate(ts: number) {
   const d = new Date(ts)
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -83,6 +242,291 @@ function MonthSelector() {
   )
 }
 
+function CompactConfigInput({
+  value,
+  widthClassName,
+  onChange,
+  onBlur,
+}: {
+  value: string
+  widthClassName: string
+  onChange: (value: string) => void
+  onBlur: () => void
+}) {
+  return (
+    <Input
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      onBlur={onBlur}
+      type="text"
+      className={`${widthClassName} h-[22px] rounded-[5px] border-[1.5px] border-[#eee] px-[10px] py-[5px] text-[10px] font-medium text-black shadow-none focus-visible:border-[#7f23ff] focus-visible:ring-[3px] focus-visible:ring-[#7f23ff]/15`}
+    />
+  )
+}
+
+function MasteryWeightingDialog({
+  open,
+  onOpenChange,
+  courseId,
+  config,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  courseId: string
+  config?: DashboardConfig
+}) {
+  const updateMasteryWeights = useMutation(api.dashboardCourses.updateMasteryWeights)
+  const [formValues, setFormValues] = useState(() => buildMasteryFormValues(config))
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setFormValues(buildMasteryFormValues(config))
+    setSaveError(null)
+  }, [config, open])
+
+  const validation = useMemo(() => getMasteryValidation(formValues), [formValues])
+
+  const handleFieldChange = (field: MasteryWeightFormField, value: string) => {
+    setSaveError(null)
+    setFormValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleFieldBlur = (field: MasteryWeightFormField) => {
+    const parsed = parsePercentValue(formValues[field])
+    if (parsed == null) return
+    setFormValues((current) => ({ ...current, [field]: formatPercentValue(parsed) }))
+  }
+
+  const handleSave = async () => {
+    if (!validation.masteryWeights) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await updateMasteryWeights({
+        courseId,
+        masteryWeights: validation.masteryWeights,
+      })
+      onOpenChange(false)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Unable to save mastery weighting.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const rows: Array<{ key: MasteryWeightFormField; label: string }> = [
+    { key: "application", label: "Application" },
+    { key: "retrieval", label: "Retrieval" },
+    { key: "retention", label: "Retention" },
+    { key: "behaviour", label: "Behaviour" },
+  ]
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className="w-[316px] max-w-[calc(100%-2rem)] gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 shadow-lg"
+      >
+        <div className="flex items-center justify-between">
+          <DialogTitle className="text-[14px] font-medium text-black">
+            Mastery Score Weighting
+          </DialogTitle>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-sm text-black transition-opacity hover:opacity-70"
+            aria-label="Close mastery weighting dialog"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex w-full flex-col gap-[10px]">
+          {rows.map((row) => (
+            <div key={row.key} className="flex flex-col gap-[10px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-medium tracking-[0.513px] text-black/70">
+                  {row.label}
+                </span>
+                <CompactConfigInput
+                  value={formValues[row.key]}
+                  onChange={(value) => handleFieldChange(row.key, value)}
+                  onBlur={() => handleFieldBlur(row.key)}
+                  widthClassName="w-[56px]"
+                />
+              </div>
+              <div className="h-px w-full bg-[#d9d9d9]" />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex w-full items-center justify-between gap-4">
+          <p
+            className={`text-[11px] ${
+              validation.error || saveError ? "text-[#d1001f]" : "text-[#5b5b5b]"
+            }`}
+          >
+            {saveError ?? validation.error ?? `Total: ${formatCompactNumber(validation.total ?? 0)}%`}
+          </p>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={!validation.masteryWeights || saving}
+            className="h-auto rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[10px] font-medium text-white hover:bg-[#7f23ff]/90"
+          >
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DiagnosisWeightingDialog({
+  open,
+  onOpenChange,
+  courseId,
+  config,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  courseId: string
+  config?: DashboardConfig
+}) {
+  const updateDiagnosisThresholds = useMutation(api.dashboardCourses.updateDiagnosisThresholds)
+  const [formValues, setFormValues] = useState(() => buildDiagnosisFormValues(config))
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setFormValues(buildDiagnosisFormValues(config))
+    setSaveError(null)
+  }, [config, open])
+
+  const validation = useMemo(() => getDiagnosisValidation(formValues), [formValues])
+
+  const handleFieldChange = (field: DiagnosisRangeFormField, value: string) => {
+    setSaveError(null)
+    setFormValues((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleFieldBlur = (field: DiagnosisRangeFormField) => {
+    const parsed = parseRangeValue(formValues[field])
+    if (!parsed) return
+    setFormValues((current) => ({
+      ...current,
+      [field]: formatRangeValue(parsed.min, parsed.max),
+    }))
+  }
+
+  const handleSave = async () => {
+    if (!validation.diagnosisThresholds) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await updateDiagnosisThresholds({
+        courseId,
+        diagnosisThresholds: validation.diagnosisThresholds,
+      })
+      onOpenChange(false)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Unable to save diagnosis configuration.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const rows: Array<{ key: DiagnosisRangeFormField; label: string }> = [
+    { key: "highMastery", label: "High Mastery" },
+    { key: "onTrack", label: "On Track" },
+    { key: "atRisk", label: "At Risk" },
+    { key: "disengaged", label: "Disengaged" },
+  ]
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className="w-[316px] max-w-[calc(100%-2rem)] gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 shadow-lg"
+      >
+        <div className="flex items-center justify-between">
+          <DialogTitle className="text-[14px] font-medium text-black">
+            Cohort Diagnosis Weighting
+          </DialogTitle>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="rounded-sm text-black transition-opacity hover:opacity-70"
+            aria-label="Close diagnosis weighting dialog"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex w-full flex-col gap-[10px]">
+          {rows.map((row) => (
+            <div key={row.key} className="flex flex-col gap-[10px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-medium tracking-[0.513px] text-black/70">
+                  {row.label}
+                </span>
+                <CompactConfigInput
+                  value={formValues[row.key]}
+                  onChange={(value) => handleFieldChange(row.key, value)}
+                  onBlur={() => handleFieldBlur(row.key)}
+                  widthClassName="w-[74px]"
+                />
+              </div>
+              <div className="h-px w-full bg-[#d9d9d9]" />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex w-full items-center justify-between gap-4">
+          <p className={`text-[11px] ${saveError || validation.error ? "text-[#d1001f]" : "text-[#5b5b5b]"}`}>
+            {saveError ?? validation.error ?? "Ranges cover 0 to 100 without gaps."}
+          </p>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={!validation.diagnosisThresholds || saving}
+            className="h-auto rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[10px] font-medium text-white hover:bg-[#7f23ff]/90"
+          >
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function InsightCardHeader({
+  title,
+  onEdit,
+}: {
+  title: string
+  onEdit: () => void
+}) {
+  return (
+    <div className="flex w-full items-center justify-between">
+      <div className="flex flex-col items-start justify-center gap-[5px]">
+        <span className="text-sm font-medium text-black">{title}</span>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="text-[12px] leading-normal text-[#7f23ff] transition-opacity hover:opacity-80"
+        >
+          Edit weighting
+        </button>
+      </div>
+      <MonthSelector />
+    </div>
+  )
+}
+
 function DiagnosisHoverCard({
   courseId,
   segmentName,
@@ -112,7 +556,15 @@ function DiagnosisHoverCard({
   )
 }
 
-function CohortDiagnosisChart({ course, learners }: { course: CourseDoc; learners?: LearnerDoc[] }) {
+function CohortDiagnosisChart({
+  course,
+  learners,
+  onEdit,
+}: {
+  course: CourseDoc
+  learners?: LearnerDoc[]
+  onEdit: () => void
+}) {
   const router = useRouter()
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null)
 
@@ -147,10 +599,7 @@ function CohortDiagnosisChart({ course, learners }: { course: CourseDoc; learner
 
   return (
     <div className="flex h-[244px] flex-1 flex-col rounded-[14px] border-2 border-[#eee] bg-white p-4">
-      <div className="flex w-full items-center justify-between">
-        <span className="text-sm font-medium text-black">Cohort Diagnosis</span>
-        <MonthSelector />
-      </div>
+      <InsightCardHeader title="Cohort Diagnosis" onEdit={onEdit} />
       <div className="flex flex-1 items-center justify-center overflow-x-auto">
         <div className="inline-flex items-center gap-[40px]">
           <div
@@ -221,7 +670,7 @@ function CohortDiagnosisChart({ course, learners }: { course: CourseDoc; learner
   )
 }
 
-function MasteryGauge({ course }: { course: CourseDoc }) {
+function MasteryGauge({ course, onEdit }: { course: CourseDoc; onEdit: () => void }) {
   const score = course.masteryScore
   const breakdowns = [
     { label: "Application", score: course.applicationScore, max: course.applicationMax },
@@ -243,10 +692,7 @@ function MasteryGauge({ course }: { course: CourseDoc }) {
 
   return (
     <div className="flex h-[244px] flex-1 flex-col rounded-[14px] border-2 border-[#eee] bg-white p-4">
-      <div className="flex w-full items-center justify-between">
-        <span className="text-sm font-medium text-black">Cohort Mastery Score</span>
-        <MonthSelector />
-      </div>
+      <InsightCardHeader title="Cohort Mastery Score" onEdit={onEdit} />
       <div className="flex flex-1 items-center justify-center overflow-x-auto">
         <div className="inline-flex items-center gap-[32px]">
           <div className="relative h-[166px] w-[168px] shrink-0">
@@ -379,7 +825,7 @@ function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undef
           </div>
         ) : (
           pageRows.map((row) => (
-            <div key={row._id} className="flex h-[27px] w-full items-center rounded-[4px]">
+            <div key={row.moduleId} className="flex h-[27px] w-full items-center rounded-[4px]">
               <div className="flex flex-1 items-center px-[10px]">
                 <span className="truncate text-xs text-black">
                   {row.courseTitle}/ {row.moduleLabel}
@@ -600,8 +1046,12 @@ function DashboardCoursesContentInner() {
   const courses = useQuery(api.dashboardCourses.list)
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [masteryDialogOpen, setMasteryDialogOpen] = useState(false)
+  const [diagnosisDialogOpen, setDiagnosisDialogOpen] = useState(false)
+  const backfillStartedRef = useRef(false)
 
   const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
+  const backfillCourseDashboardConfigs = useMutation(api.dashboardCourses.backfillCourseDashboardConfigs)
   const [seeding, setSeeding] = useState(false)
   const handleSeed = async () => {
     setSeeding(true)
@@ -627,6 +1077,14 @@ function DashboardCoursesContentInner() {
     api.dashboardCourses.listModuleInsights,
     activeCourseId ? { courseId: activeCourseId } : "skip"
   )
+
+  useEffect(() => {
+    if (!courses?.length || backfillStartedRef.current) return
+    backfillStartedRef.current = true
+    void backfillCourseDashboardConfigs({}).catch(() => {
+      backfillStartedRef.current = false
+    })
+  }, [backfillCourseDashboardConfigs, courses])
 
   if (!courses) {
     return (
@@ -680,6 +1138,18 @@ function DashboardCoursesContentInner() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-white p-6">
+      <MasteryWeightingDialog
+        open={masteryDialogOpen}
+        onOpenChange={setMasteryDialogOpen}
+        courseId={course.courseId}
+        config={course.dashboardConfig}
+      />
+      <DiagnosisWeightingDialog
+        open={diagnosisDialogOpen}
+        onOpenChange={setDiagnosisDialogOpen}
+        courseId={course.courseId}
+        config={course.dashboardConfig}
+      />
       <div className="flex flex-col gap-16">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
@@ -757,8 +1227,15 @@ function DashboardCoursesContentInner() {
           </h2>
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-4">
-              <CohortDiagnosisChart course={course} learners={cohortLearners as LearnerDoc[] | undefined} />
-              <MasteryGauge course={course} />
+              <CohortDiagnosisChart
+                course={course}
+                learners={cohortLearners as LearnerDoc[] | undefined}
+                onEdit={() => setDiagnosisDialogOpen(true)}
+              />
+              <MasteryGauge
+                course={course}
+                onEdit={() => setMasteryDialogOpen(true)}
+              />
             </div>
             <ModuleInsightsTable insights={moduleInsights ?? undefined} />
             <AssessmentTable assessments={assessments} />

@@ -2,6 +2,7 @@ import { v } from "convex/values"
 
 import { query } from "./_generated/server"
 import { buildDiagnosisLearnerRows } from "./cohortDiagnosis.helpers"
+import { resolveCourseDashboardConfig } from "./scoreUtils"
 
 const diagnosisRiskBucketValidator = v.union(
   v.literal("high_mastery"),
@@ -31,9 +32,13 @@ export const listLearnersByCourseAndSegment = query({
     totalCount: v.float64(),
   }),
   handler: async (ctx, { cohortId, courseId, riskBucket }) => {
-    const [courseModules, cohortUsers, cohortSnapshots] = await Promise.all([
+    const [courseModules, courseEnrollments, cohortUsers, cohortSnapshots, configDoc] = await Promise.all([
       ctx.db
         .query("modules")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .collect(),
+      ctx.db
+        .query("course_enrollments")
         .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
         .collect(),
       ctx.db
@@ -42,15 +47,27 @@ export const listLearnersByCourseAndSegment = query({
         .collect(),
       ctx.db
         .query("course_mastery_history")
-        .withIndex("by_cohortId", (q) => q.eq("cohortId", cohortId))
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
         .collect(),
+      ctx.db
+        .query("course_dashboard_configs")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .unique(),
     ])
+
+    const enrolledUserIds = new Set(courseEnrollments.map((enrollment) => enrollment.userId))
+    const courseUsers = cohortUsers.filter(
+      (user) => user.role === "learner" && Boolean(user.userId) && enrolledUserIds.has(user.userId!)
+    )
+    const config = resolveCourseDashboardConfig(configDoc)
 
     const rows = buildDiagnosisLearnerRows({
       moduleIds: courseModules.map((module) => module.moduleId),
       selectedRiskBucket: riskBucket,
       snapshots: cohortSnapshots,
-      users: cohortUsers,
+      users: courseUsers,
+      masteryWeights: config.masteryWeights,
+      diagnosisThresholds: config.diagnosisThresholds,
       nowSec: Date.now() / 1000,
     })
 

@@ -1,5 +1,252 @@
-import { query } from "./_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { buildCourseLearnerRows } from "./cohortDiagnosis.helpers";
+import {
+  computeMasteryFromComponents,
+  getDefaultCourseDashboardConfig,
+  resolveCourseDashboardConfig,
+  validateDiagnosisThresholds,
+  validateMasteryWeights,
+} from "./scoreUtils";
+
+const masteryWeightsValidator = v.object({
+  applicationPct: v.float64(),
+  retrievalPct: v.float64(),
+  retentionPct: v.float64(),
+  behaviourPct: v.float64(),
+});
+
+const diagnosisThresholdsValidator = v.object({
+  highMasteryMin: v.float64(),
+  onTrackMin: v.float64(),
+  atRiskMin: v.float64(),
+});
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function average(values: number[]) {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function moduleRiskLabel(averageScore: number) {
+  if (averageScore >= 80) return "Low";
+  if (averageScore >= 65) return "Moderate";
+  return "High";
+}
+
+function buildLatestSnapshotMap<
+  T extends {
+    userId: string;
+    moduleId: string;
+    calculatedAt: number;
+  },
+>(snapshots: T[]) {
+  const latestSnapshots = new Map<string, T>();
+  for (const snapshot of snapshots) {
+    const key = `${snapshot.userId}:${snapshot.moduleId}`;
+    const current = latestSnapshots.get(key);
+    if (!current || snapshot.calculatedAt > current.calculatedAt) {
+      latestSnapshots.set(key, snapshot);
+    }
+  }
+  return latestSnapshots;
+}
+
+async function getCourseDashboardConfigDoc(ctx: QueryCtx | MutationCtx, courseId: string) {
+  return await ctx.db
+    .query("course_dashboard_configs")
+    .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+    .unique();
+}
+
+async function upsertCourseDashboardConfig(
+  ctx: MutationCtx,
+  courseId: string,
+  updates: Partial<ReturnType<typeof getDefaultCourseDashboardConfig>>
+) {
+  const now = Date.now();
+  const existing = await getCourseDashboardConfigDoc(ctx, courseId);
+  const nextConfig = resolveCourseDashboardConfig({
+    masteryWeights: existing?.masteryWeights,
+    diagnosisThresholds: existing?.diagnosisThresholds,
+    ...updates,
+  });
+
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      ...nextConfig,
+      updatedAt: now,
+    });
+    return;
+  }
+
+  await ctx.db.insert("course_dashboard_configs", {
+    courseId,
+    ...nextConfig,
+    updatedAt: now,
+  });
+}
+
+async function loadCourseAggregationInputs(
+  ctx: QueryCtx,
+  courseId: string
+) {
+  const [configDoc, modules, enrollments, snapshots] = await Promise.all([
+    getCourseDashboardConfigDoc(ctx, courseId),
+    ctx.db
+      .query("modules")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .collect(),
+    ctx.db
+      .query("course_enrollments")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .collect(),
+    ctx.db
+      .query("course_mastery_history")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .collect(),
+  ]);
+
+  const enrolledUserIds = new Set(enrollments.map((enrollment) => enrollment.userId));
+  const cohortId = enrollments[0]?.cohortId ?? modules[0]?.cohortId ?? null;
+  const cohortUsers = cohortId
+    ? await ctx.db
+        .query("user")
+        .withIndex("by_cohortId", (q) => q.eq("cohortId", cohortId))
+        .collect()
+    : [];
+
+  const userMap = new Map(
+    cohortUsers
+      .filter((user) => user.userId)
+      .map((user) => [user.userId as string, user])
+  );
+
+  const missingUserIds = [...enrolledUserIds].filter((userId) => !userMap.has(userId));
+  const missingUsers = await Promise.all(
+    missingUserIds.map((userId) =>
+      ctx.db
+        .query("user")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique()
+    )
+  );
+  for (const user of missingUsers) {
+    if (user?.userId) userMap.set(user.userId, user);
+  }
+
+  const courseUsers = enrollments.flatMap((enrollment) => {
+    const user = userMap.get(enrollment.userId);
+    if (!user || user.role !== "learner") return [];
+    return [user];
+  });
+
+  return {
+    modules,
+    snapshots,
+    courseUsers,
+    config: resolveCourseDashboardConfig(configDoc),
+  };
+}
+
+function buildDynamicModuleInsights({
+  courseId,
+  courseTitle,
+  modules,
+  courseUsers,
+  snapshots,
+  masteryWeights,
+}: {
+  courseId: string;
+  courseTitle: string;
+  modules: Array<{ moduleId: string; order?: number; title?: string }>;
+  courseUsers: Array<{ userId?: string | null }>;
+  snapshots: Array<{
+    userId: string;
+    moduleId: string;
+    applicationScore: number;
+    comprehensionScore: number;
+    retentionScore: number;
+    behavioralScore: number;
+    calculatedAt: number;
+  }>;
+  masteryWeights: ReturnType<typeof getDefaultCourseDashboardConfig>["masteryWeights"];
+}) {
+  const latestSnapshots = buildLatestSnapshotMap(snapshots);
+  const sortedModules = [...modules].sort((left, right) => (left.order ?? 0) - (right.order ?? 0));
+
+  return sortedModules.map((moduleDoc, index) => {
+    const learnerScores =
+      courseUsers.length > 0
+        ? courseUsers.map((user) => {
+            const externalUserId = user.userId;
+            if (!externalUserId) return 0;
+            const snapshot = latestSnapshots.get(`${externalUserId}:${moduleDoc.moduleId}`);
+            if (!snapshot) return 0;
+            return computeMasteryFromComponents({
+              applicationScore: snapshot.applicationScore,
+              retrievalScore: snapshot.comprehensionScore,
+              retentionScore: snapshot.retentionScore,
+              behaviourScore: snapshot.behavioralScore,
+              masteryWeights,
+            });
+          })
+        : snapshots
+            .filter((snapshot) => snapshot.moduleId === moduleDoc.moduleId)
+            .map((snapshot) =>
+              computeMasteryFromComponents({
+                applicationScore: snapshot.applicationScore,
+                retrievalScore: snapshot.comprehensionScore,
+                retentionScore: snapshot.retentionScore,
+                behaviourScore: snapshot.behavioralScore,
+                masteryWeights,
+              })
+            );
+
+    const averageScore = round2(average(learnerScores));
+
+    return {
+      courseId,
+      moduleId: moduleDoc.moduleId,
+      moduleLabel: `Module ${moduleDoc.order ?? index + 1}`,
+      courseTitle,
+      averageScore,
+      cohortRiskBucket: moduleRiskLabel(averageScore),
+    };
+  });
+}
+
+async function getComputedModuleInsights(ctx: QueryCtx, courseId: string) {
+  const course = await ctx.db
+    .query("courses")
+    .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+    .unique();
+  if (!course) return [];
+
+  const { modules, snapshots, courseUsers, config } = await loadCourseAggregationInputs(ctx, courseId);
+  const hasDynamicLearnerData = courseUsers.length > 0 || snapshots.length > 0;
+  if (!hasDynamicLearnerData) {
+    const rows = await ctx.db
+      .query("module_insights")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .collect();
+    return rows.sort((a, b) =>
+      a.moduleLabel.localeCompare(b.moduleLabel, undefined, { numeric: true })
+    );
+  }
+
+  return buildDynamicModuleInsights({
+    courseId,
+    courseTitle: course.title,
+    modules,
+    courseUsers,
+    snapshots,
+    masteryWeights: config.masteryWeights,
+  });
+}
 
 export const list = query({
   args: {},
@@ -11,10 +258,144 @@ export const list = query({
 export const getByCourseId = query({
   args: { courseId: v.string() },
   handler: async (ctx, { courseId }) => {
-    return await ctx.db
+    const course = await ctx.db
       .query("courses")
       .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
       .unique();
+    if (!course) return null;
+
+    const { modules, snapshots, courseUsers, config } = await loadCourseAggregationInputs(ctx, courseId);
+    const hasDynamicLearnerData = courseUsers.length > 0 || snapshots.length > 0;
+    if (!hasDynamicLearnerData) {
+      return {
+        ...course,
+        applicationMax: config.masteryWeights.applicationPct,
+        retrievalMax: config.masteryWeights.retrievalPct,
+        retentionMax: config.masteryWeights.retentionPct,
+        behaviourMax: config.masteryWeights.behaviourPct,
+        dashboardConfig: config,
+      };
+    }
+
+    const learnerRows = buildCourseLearnerRows({
+      moduleIds: modules.map((module) => module.moduleId),
+      snapshots,
+      users: courseUsers,
+      masteryWeights: config.masteryWeights,
+      diagnosisThresholds: config.diagnosisThresholds,
+      nowSec: Date.now() / 1000,
+    });
+
+    const diagnosisCounts = {
+      high_mastery: 0,
+      on_track: 0,
+      at_risk: 0,
+      disengaged: 0,
+    };
+    for (const row of learnerRows) {
+      diagnosisCounts[row.riskBucket] += 1;
+    }
+
+    const avgApplication = average(learnerRows.map((row) => row.applicationScore));
+    const avgRetrieval = average(learnerRows.map((row) => row.retrievalScore));
+    const avgRetention = average(learnerRows.map((row) => row.retentionScore));
+    const avgBehaviour = average(learnerRows.map((row) => row.behaviourScore));
+
+    const applicationContribution = Math.round(
+      avgApplication * (config.masteryWeights.applicationPct / 100)
+    );
+    const retrievalContribution = Math.round(
+      avgRetrieval * (config.masteryWeights.retrievalPct / 100)
+    );
+    const retentionContribution = Math.round(
+      avgRetention * (config.masteryWeights.retentionPct / 100)
+    );
+    const behaviourContribution = Math.round(
+      avgBehaviour * (config.masteryWeights.behaviourPct / 100)
+    );
+
+    return {
+      ...course,
+      totalStudents: courseUsers.length || course.totalStudents,
+      studentsAtRisk: diagnosisCounts.at_risk + diagnosisCounts.disengaged,
+      diagnosisHighMastery: diagnosisCounts.high_mastery,
+      diagnosisOnTrack: diagnosisCounts.on_track,
+      diagnosisAtRisk: diagnosisCounts.at_risk,
+      diagnosisDisengaged: diagnosisCounts.disengaged,
+      masteryScore:
+        applicationContribution +
+        retrievalContribution +
+        retentionContribution +
+        behaviourContribution,
+      applicationScore: applicationContribution,
+      applicationMax: config.masteryWeights.applicationPct,
+      retrievalScore: retrievalContribution,
+      retrievalMax: config.masteryWeights.retrievalPct,
+      retentionScore: retentionContribution,
+      retentionMax: config.masteryWeights.retentionPct,
+      behaviourScore: behaviourContribution,
+      behaviourMax: config.masteryWeights.behaviourPct,
+      dashboardConfig: config,
+    };
+  },
+});
+
+export const updateMasteryWeights = mutation({
+  args: {
+    courseId: v.string(),
+    masteryWeights: masteryWeightsValidator,
+  },
+  handler: async (ctx, { courseId, masteryWeights }) => {
+    const course = await ctx.db
+      .query("courses")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .unique();
+    if (!course) throw new Error("Course not found.");
+
+    validateMasteryWeights(masteryWeights);
+    await upsertCourseDashboardConfig(ctx, courseId, { masteryWeights });
+    return { ok: true };
+  },
+});
+
+export const updateDiagnosisThresholds = mutation({
+  args: {
+    courseId: v.string(),
+    diagnosisThresholds: diagnosisThresholdsValidator,
+  },
+  handler: async (ctx, { courseId, diagnosisThresholds }) => {
+    const course = await ctx.db
+      .query("courses")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .unique();
+    if (!course) throw new Error("Course not found.");
+
+    validateDiagnosisThresholds(diagnosisThresholds);
+    await upsertCourseDashboardConfig(ctx, courseId, { diagnosisThresholds });
+    return { ok: true };
+  },
+});
+
+export const backfillCourseDashboardConfigs = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const courses = await ctx.db.query("courses").collect();
+    let createdCount = 0;
+
+    for (const course of courses) {
+      const existing = await getCourseDashboardConfigDoc(ctx, course.courseId);
+      if (existing) continue;
+
+      const defaults = getDefaultCourseDashboardConfig();
+      await ctx.db.insert("course_dashboard_configs", {
+        courseId: course.courseId,
+        ...defaults,
+        updatedAt: Date.now(),
+      });
+      createdCount += 1;
+    }
+
+    return { createdCount };
   },
 });
 
@@ -32,22 +413,23 @@ export const listAssessments = query({
 export const listModuleInsights = query({
   args: { courseId: v.string() },
   handler: async (ctx, { courseId }) => {
-    const rows = await ctx.db
-      .query("module_insights")
-      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
-      .collect();
-    return rows.sort((a, b) => a.moduleLabel.localeCompare(b.moduleLabel, undefined, { numeric: true }));
+    return await getComputedModuleInsights(ctx, courseId);
   },
 });
 
 export const getModuleInsight = query({
   args: { courseId: v.string(), moduleId: v.string() },
   handler: async (ctx, { courseId, moduleId }) => {
-    const rows = await ctx.db
-      .query("module_insights")
-      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
-      .collect();
+    const rows = await getComputedModuleInsights(ctx, courseId);
     return rows.find((r) => r.moduleId === moduleId) ?? null;
+  },
+});
+
+export const getCourseDashboardConfig = query({
+  args: { courseId: v.string() },
+  handler: async (ctx, { courseId }) => {
+    const config = await getCourseDashboardConfigDoc(ctx, courseId);
+    return resolveCourseDashboardConfig(config);
   },
 });
 

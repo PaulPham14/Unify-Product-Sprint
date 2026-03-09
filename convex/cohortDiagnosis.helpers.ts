@@ -1,4 +1,10 @@
-import { getRiskBucketForMasteryScore } from "./scoreUtils"
+import {
+  computeMasteryFromComponents,
+  getDefaultCourseDashboardConfig,
+  getDiagnosisBucketForMasteryScore,
+  type DiagnosisThresholds,
+  type MasteryWeights,
+} from "./scoreUtils"
 
 type DiagnosisUserRecord<LearnerId extends string = string> = {
   _id: LearnerId
@@ -11,6 +17,10 @@ type DiagnosisUserRecord<LearnerId extends string = string> = {
 type ModuleMasterySnapshot = {
   userId: string
   moduleId: string
+  applicationScore: number
+  comprehensionScore: number
+  retentionScore: number
+  behavioralScore: number
   masteryScore: number
   calculatedAt: number
 }
@@ -25,23 +35,29 @@ type DiagnosisLearnerRow<LearnerId extends string = string> = {
   learnerId: LearnerId
   externalUserId: string
   learnerName: string
+  applicationScore: number
+  retrievalScore: number
+  retentionScore: number
+  behaviourScore: number
   masteryScore: number
   riskBucket: DiagnosisRiskBucket
   snapshotCount: number
   latestCalculatedAt: number
 }
 
-export function buildDiagnosisLearnerRows<LearnerId extends string>({
+export function buildCourseLearnerRows<LearnerId extends string>({
   moduleIds,
-  selectedRiskBucket,
   snapshots,
   users,
+  masteryWeights = getDefaultCourseDashboardConfig().masteryWeights,
+  diagnosisThresholds = getDefaultCourseDashboardConfig().diagnosisThresholds,
   nowSec = Date.now() / 1000,
 }: {
   moduleIds: string[]
-  selectedRiskBucket: DiagnosisRiskBucket
   snapshots: ModuleMasterySnapshot[]
   users: DiagnosisUserRecord<LearnerId>[]
+  masteryWeights?: MasteryWeights
+  diagnosisThresholds?: DiagnosisThresholds
   nowSec?: number
 }): DiagnosisLearnerRow<LearnerId>[] {
   const relevantModuleIds = new Set(moduleIds)
@@ -70,35 +86,50 @@ export function buildDiagnosisLearnerRows<LearnerId extends string>({
       const externalUserId = user.userId
       if (!externalUserId) return []
 
-      const userSnapshots = snapshotsByUser.get(externalUserId)
-      if (!userSnapshots?.length) return []
+      const userSnapshots = snapshotsByUser.get(externalUserId) ?? []
 
-      const totalMastery = userSnapshots.reduce(
-        (sum, snapshot) => sum + snapshot.masteryScore,
-        0
-      )
-      const averageMastery = totalMastery / userSnapshots.length
+      const averageOf = (
+        getter: (snapshot: ModuleMasterySnapshot) => number
+      ) =>
+        userSnapshots.length === 0
+          ? 0
+          : userSnapshots.reduce((sum, snapshot) => sum + getter(snapshot), 0) / userSnapshots.length
+
+      const applicationScore = averageOf((snapshot) => snapshot.applicationScore)
+      const retrievalScore = averageOf((snapshot) => snapshot.comprehensionScore)
+      const retentionScore = averageOf((snapshot) => snapshot.retentionScore)
+      const behaviourScore = averageOf((snapshot) => snapshot.behavioralScore)
+      const masteryScore = computeMasteryFromComponents({
+        applicationScore,
+        retrievalScore,
+        retentionScore,
+        behaviourScore,
+        masteryWeights,
+      })
       const lastActiveAt = user.lastActiveAt ?? nowSec
       const daysSinceActive = (nowSec - lastActiveAt) / 86400
-      const riskBucket = getRiskBucketForMasteryScore({
-        masteryScore: averageMastery,
+      const riskBucket = getDiagnosisBucketForMasteryScore({
+        masteryScore,
         daysSinceActive,
         hasActivityData: userSnapshots.length > 0,
+        diagnosisThresholds,
       }) as DiagnosisRiskBucket
-
-      if (riskBucket !== selectedRiskBucket) return []
 
       return [
         {
           learnerId: user._id,
           externalUserId,
           learnerName: user.name,
-          masteryScore: Math.round(averageMastery),
+          applicationScore: Math.round(applicationScore * 100) / 100,
+          retrievalScore: Math.round(retrievalScore * 100) / 100,
+          retentionScore: Math.round(retentionScore * 100) / 100,
+          behaviourScore: Math.round(behaviourScore * 100) / 100,
+          masteryScore: Math.round(masteryScore),
           riskBucket,
           snapshotCount: userSnapshots.length,
-          latestCalculatedAt: Math.max(
-            ...userSnapshots.map((snapshot) => snapshot.calculatedAt)
-          ),
+          latestCalculatedAt: userSnapshots.length
+            ? Math.max(...userSnapshots.map((snapshot) => snapshot.calculatedAt))
+            : 0,
         },
       ]
     })
@@ -109,4 +140,31 @@ export function buildDiagnosisLearnerRows<LearnerId extends string>({
     }
     return left.learnerName.localeCompare(right.learnerName)
   })
+}
+
+export function buildDiagnosisLearnerRows<LearnerId extends string>({
+  moduleIds,
+  selectedRiskBucket,
+  snapshots,
+  users,
+  masteryWeights = getDefaultCourseDashboardConfig().masteryWeights,
+  diagnosisThresholds = getDefaultCourseDashboardConfig().diagnosisThresholds,
+  nowSec = Date.now() / 1000,
+}: {
+  moduleIds: string[]
+  selectedRiskBucket: DiagnosisRiskBucket
+  snapshots: ModuleMasterySnapshot[]
+  users: DiagnosisUserRecord<LearnerId>[]
+  masteryWeights?: MasteryWeights
+  diagnosisThresholds?: DiagnosisThresholds
+  nowSec?: number
+}) {
+  return buildCourseLearnerRows({
+    moduleIds,
+    snapshots,
+    users,
+    masteryWeights,
+    diagnosisThresholds,
+    nowSec,
+  }).filter((row) => row.riskBucket === selectedRiskBucket)
 }
