@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { getDefaultCourseDashboardConfig } from "@/convex/scoreUtils"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import {
   Select,
@@ -206,9 +207,15 @@ function LearnerInsightsContentInner({
   const storedMastery = selectedLearner?.masteryScore
   const aggregateMastery = useMemo(() => {
     if (storedMastery != null) return storedMastery
-    const weights = [0.4, 0.3, 0.2, 0.1]
+    const weights = getDefaultCourseDashboardConfig().masteryWeights
     const values = [applicationScore, retrievalScore, retentionScore, behaviourScore]
-    return values.reduce((acc, v, i) => acc + (v ?? 0) * (weights[i] ?? 0), 0)
+    const factors = [
+      weights.applicationPct / 100,
+      weights.retrievalPct / 100,
+      weights.retentionPct / 100,
+      weights.behaviourPct / 100,
+    ]
+    return values.reduce((acc, v, i) => acc + (v ?? 0) * (factors[i] ?? 0), 0)
   }, [storedMastery, applicationScore, retrievalScore, retentionScore, behaviourScore])
   const displayMastery = Math.min(100, Math.max(0, Math.round(aggregateMastery * 100) / 100))
   const masteryScore = storedMastery != null ? storedMastery : Math.round(aggregateMastery * 100) / 100
@@ -322,7 +329,7 @@ function LearnerInsightsContentInner({
             </h1>
 
             {/* Attention — only for the selected learner when they are at risk */}
-            {lowestPerformingAttention?.filter((item) => item.learnerId === selectedLearnerId).length ? (
+            {Array.isArray(lowestPerformingAttention) && lowestPerformingAttention.filter((item) => item.learnerId === selectedLearnerId).length ? (
               <section className="space-y-4">
                 <h2 className="text-sm font-medium text-foreground">Attention</h2>
                 {lowestPerformingAttention

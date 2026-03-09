@@ -122,6 +122,22 @@ export default defineSchema({
     behaviourMax: v.float64(),
   }).index("by_courseId", ["courseId"]),
 
+  course_dashboard_configs: defineTable({
+    courseId: v.string(),
+    masteryWeights: v.object({
+      applicationPct: v.float64(),
+      retrievalPct: v.float64(),
+      retentionPct: v.float64(),
+      behaviourPct: v.float64(),
+    }),
+    diagnosisThresholds: v.object({
+      highMasteryMin: v.float64(),
+      onTrackMin: v.float64(),
+      atRiskMin: v.float64(),
+    }),
+    updatedAt: v.float64(),
+  }).index("by_courseId", ["courseId"]),
+
   course_enrollments: defineTable({
     cohortId: v.string(),
     courseId: v.string(),

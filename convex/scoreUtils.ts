@@ -3,12 +3,139 @@
  * Inputs are plain objects (no Convex Doc dependency).
  */
 
-const MASTERY_WEIGHTS = { application: 0.4, retrieval: 0.3, retention: 0.2, behavior: 0.1 };
-const BUCKET_HIGH = 85;
-const BUCKET_ON_TRACK = 65;
-const BUCKET_AT_RISK = 50;
 const INACTIVE_TAB_THRESHOLD = 0.15;
 const DISENGAGED_DAYS = 30;
+
+export type MasteryWeights = {
+  applicationPct: number;
+  retrievalPct: number;
+  retentionPct: number;
+  behaviourPct: number;
+};
+
+export type DiagnosisThresholds = {
+  highMasteryMin: number;
+  onTrackMin: number;
+  atRiskMin: number;
+};
+
+export type CourseDashboardConfig = {
+  masteryWeights: MasteryWeights;
+  diagnosisThresholds: DiagnosisThresholds;
+};
+
+const DEFAULT_MASTERY_WEIGHTS: MasteryWeights = {
+  applicationPct: 40,
+  retrievalPct: 30,
+  retentionPct: 20,
+  behaviourPct: 10,
+};
+
+const DEFAULT_DIAGNOSIS_THRESHOLDS: DiagnosisThresholds = {
+  highMasteryMin: 85,
+  onTrackMin: 70,
+  atRiskMin: 50,
+};
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+export function getDefaultCourseDashboardConfig(): CourseDashboardConfig {
+  return {
+    masteryWeights: { ...DEFAULT_MASTERY_WEIGHTS },
+    diagnosisThresholds: { ...DEFAULT_DIAGNOSIS_THRESHOLDS },
+  };
+}
+
+export function resolveCourseDashboardConfig(
+  config: Partial<CourseDashboardConfig> | null | undefined
+): CourseDashboardConfig {
+  const defaults = getDefaultCourseDashboardConfig();
+  return {
+    masteryWeights: {
+      ...defaults.masteryWeights,
+      ...(config?.masteryWeights ?? {}),
+    },
+    diagnosisThresholds: {
+      ...defaults.diagnosisThresholds,
+      ...(config?.diagnosisThresholds ?? {}),
+    },
+  };
+}
+
+export function validateMasteryWeights(weights: MasteryWeights) {
+  const entries = Object.entries(weights);
+  if (entries.some(([, value]) => !Number.isFinite(value) || value < 0 || value > 100)) {
+    throw new Error("Mastery weights must be between 0 and 100.");
+  }
+
+  const total = round2(entries.reduce((sum, [, value]) => sum + value, 0));
+  if (total !== 100) {
+    throw new Error("Mastery weights must sum to 100.");
+  }
+}
+
+export function validateDiagnosisThresholds(thresholds: DiagnosisThresholds) {
+  const { highMasteryMin, onTrackMin, atRiskMin } = thresholds;
+  const values = [highMasteryMin, onTrackMin, atRiskMin];
+  if (values.some((value) => !Number.isFinite(value) || value < 0 || value > 100)) {
+    throw new Error("Diagnosis thresholds must be between 0 and 100.");
+  }
+  if (!(highMasteryMin > onTrackMin && onTrackMin > atRiskMin)) {
+    throw new Error("Diagnosis thresholds must descend without overlap.");
+  }
+}
+
+export function computeMasteryFromComponents({
+  applicationScore,
+  retrievalScore,
+  retentionScore,
+  behaviourScore,
+  masteryWeights = DEFAULT_MASTERY_WEIGHTS,
+}: {
+  applicationScore: number;
+  retrievalScore: number;
+  retentionScore: number;
+  behaviourScore: number;
+  masteryWeights?: MasteryWeights;
+}) {
+  validateMasteryWeights(masteryWeights);
+  return (
+    applicationScore * (masteryWeights.applicationPct / 100) +
+    retrievalScore * (masteryWeights.retrievalPct / 100) +
+    retentionScore * (masteryWeights.retentionPct / 100) +
+    behaviourScore * (masteryWeights.behaviourPct / 100)
+  );
+}
+
+export function getDiagnosisBucketForMasteryScore({
+  masteryScore,
+  daysSinceActive,
+  hasActivityData,
+  diagnosisThresholds = DEFAULT_DIAGNOSIS_THRESHOLDS,
+}: {
+  masteryScore: number;
+  daysSinceActive: number;
+  hasActivityData: boolean;
+  diagnosisThresholds?: DiagnosisThresholds;
+}) {
+  validateDiagnosisThresholds(diagnosisThresholds);
+
+  if (daysSinceActive > DISENGAGED_DAYS && hasActivityData) {
+    return "disengaged";
+  }
+  if (masteryScore >= diagnosisThresholds.highMasteryMin) {
+    return "high_mastery";
+  }
+  if (masteryScore >= diagnosisThresholds.onTrackMin) {
+    return "on_track";
+  }
+  if (masteryScore >= diagnosisThresholds.atRiskMin) {
+    return "at_risk";
+  }
+  return "disengaged";
+}
 
 type ResultLike = {
   taskType?: string | null;
@@ -47,19 +174,12 @@ export function getRiskBucketForMasteryScore({
   daysSinceActive: number;
   hasActivityData: boolean;
 }) {
-  if (daysSinceActive > DISENGAGED_DAYS && hasActivityData) {
-    return "disengaged";
-  }
-  if (masteryScore >= BUCKET_HIGH) {
-    return "high_mastery";
-  }
-  if (masteryScore >= BUCKET_ON_TRACK) {
-    return "on_track";
-  }
-  if (masteryScore >= BUCKET_AT_RISK) {
-    return "at_risk";
-  }
-  return "disengaged";
+  return getDiagnosisBucketForMasteryScore({
+    masteryScore,
+    daysSinceActive,
+    hasActivityData,
+    diagnosisThresholds: DEFAULT_DIAGNOSIS_THRESHOLDS,
+  });
 }
 
 export function computeScoresFromResults(
@@ -146,11 +266,13 @@ export function computeScoresFromResults(
     )
   );
 
-  const masteryScore =
-    applicationScore * MASTERY_WEIGHTS.application +
-    retrievalScore * MASTERY_WEIGHTS.retrieval +
-    retentionScore * MASTERY_WEIGHTS.retention +
-    behaviorScore * MASTERY_WEIGHTS.behavior;
+  const masteryScore = computeMasteryFromComponents({
+    applicationScore,
+    retrievalScore,
+    retentionScore,
+    behaviourScore: behaviorScore,
+    masteryWeights: DEFAULT_MASTERY_WEIGHTS,
+  });
 
   const riskBucket = getRiskBucketForMasteryScore({
     masteryScore,
@@ -159,12 +281,12 @@ export function computeScoresFromResults(
   });
 
   return {
-    applicationScore: Math.round(applicationScore * 100) / 100,
-    comprehensionScore: Math.round(retrievalScore * 100) / 100,
-    retentionScore: Math.round(retentionScore * 100) / 100,
-    behavioralScore: Math.round(behaviorScore * 100) / 100,
-    insightsScore: Math.round(insightsScore * 100) / 100,
-    masteryScore: Math.round(masteryScore * 100) / 100,
+    applicationScore: round2(applicationScore),
+    comprehensionScore: round2(retrievalScore),
+    retentionScore: round2(retentionScore),
+    behavioralScore: round2(behaviorScore),
+    insightsScore: round2(insightsScore),
+    masteryScore: round2(masteryScore),
     riskBucket,
   };
 }
