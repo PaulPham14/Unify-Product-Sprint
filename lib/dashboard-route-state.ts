@@ -6,7 +6,7 @@ export type AppHomeSubPage =
   | "questions"
   | "member-events"
   | "resources"
-export type AppDashboardSubPage = "for-you" | "courses" | "learners"
+export type AppDashboardSubPage = "for-you" | "courses" | "learners" | "assessments"
 
 export type DashboardRouteState = {
   page: AppPageId
@@ -37,6 +37,7 @@ const VALID_DASHBOARD_SUBPAGES = new Set<AppDashboardSubPage>([
   "for-you",
   "courses",
   "learners",
+  "assessments",
 ])
 
 export function buildDashboardHref({

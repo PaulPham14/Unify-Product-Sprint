@@ -12,6 +12,7 @@ import { ChatContent } from "@/components/chat-content"
 import { AdminContent } from "@/components/admin-content"
 import { DashboardForYouContent } from "@/components/dashboard/for-you-content"
 import { DashboardCoursesContent } from "@/components/dashboard/courses-content"
+import { DashboardAssessmentsContent } from "@/components/dashboard/assessments-content"
 import { LearnerInsightsContent } from "@/components/learner-insights-content"
 import { AcademyContent } from "@/components/home/academy-content"
 import { AnnouncementsContent } from "@/components/home/announcements-content"
@@ -97,6 +98,8 @@ function RootPageContent() {
         return <DashboardCoursesContent />
       case "learners":
         return <LearnerInsightsContent initialLearnerId={routeState.learnerId} />
+      case "assessments":
+        return <DashboardAssessmentsContent />
       default:
         return <DashboardForYouContent />
     }

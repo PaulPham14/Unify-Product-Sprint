@@ -413,6 +413,120 @@ export const listAssessments = query({
   },
 });
 
+function scoreLabelFromPct(scorePct: number | null) {
+  if (scorePct == null) return null;
+  return `${Math.round(scorePct)}%`;
+}
+
+export const listAssessmentInsights = query({
+  args: { courseId: v.string() },
+  handler: async (ctx, { courseId }) => {
+    const [course, modules, assessments, enrollments, taskResults, users] = await Promise.all([
+      ctx.db
+        .query("courses")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .unique(),
+      ctx.db
+        .query("modules")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .collect(),
+      ctx.db
+        .query("course_assessments")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .collect(),
+      ctx.db
+        .query("course_enrollments")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .collect(),
+      ctx.db
+        .query("task_results")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .collect(),
+      ctx.db.query("user").collect(),
+    ]);
+
+    if (!course) return [];
+
+    const sortedModules = [...modules].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const userByExternalId = new Map(
+      users
+        .filter((u) => Boolean(u.userId))
+        .map((u) => [u.userId as string, u]),
+    );
+
+    return [...assessments]
+      .sort((a, b) => a.order - b.order)
+      .map((assessment) => {
+        const moduleNumFromLabel = Number(
+          (assessment.assessmentType.match(/(\d+)/)?.[1] ?? "0").trim(),
+        );
+        const taskTypeLabel = assessment.assessmentType.toLowerCase().includes("assignment")
+          ? "assignment"
+          : "quiz";
+        const moduleDoc =
+          sortedModules.find((m) => (m.order ?? 0) === moduleNumFromLabel) ?? null;
+        const expectedSuffix = taskTypeLabel === "assignment" ? "_assignment" : "_quiz";
+        const matchedTaskResults = taskResults.filter((result) => {
+          if (moduleDoc && result.moduleId !== moduleDoc.moduleId) return false;
+          if (!result.taskId.endsWith(expectedSuffix)) return false;
+          // Exclude retention quiz rows for "Quiz N" lines.
+          if (taskTypeLabel === "quiz" && result.taskId.endsWith("_retention")) return false;
+          return true;
+        });
+
+        const learnerGrades = enrollments
+          .map((enrollment) => {
+            const learner = userByExternalId.get(enrollment.userId);
+            const learnerRows = matchedTaskResults.filter((row) => row.userId === enrollment.userId);
+            const learnerPct =
+              learnerRows.length > 0
+                ? average(
+                    learnerRows.map((row) =>
+                      row.maxScore > 0 ? (row.score / row.maxScore) * 100 : 0,
+                    ),
+                  )
+                : null;
+            return {
+              learnerId: learner?._id ?? enrollment.userId,
+              learnerName: learner?.name ?? enrollment.userId,
+              rawScore: learnerPct,
+              scoreLabel: scoreLabelFromPct(learnerPct),
+            };
+          })
+          .sort((a, b) => a.learnerName.localeCompare(b.learnerName));
+
+        const classAverage =
+          learnerGrades.length > 0
+            ? average(
+                learnerGrades
+                  .map((g) => g.rawScore)
+                  .filter((value): value is number => value != null),
+              )
+            : null;
+
+        const moduleDisplayOrder = moduleDoc?.order ?? moduleNumFromLabel;
+
+        return {
+          assessmentType: assessment.assessmentType,
+          courseModuleLabel: `${course.title}/ Module ${moduleDisplayOrder || "-"}`,
+          dueDate: assessment.dueDate,
+          status: assessment.status,
+          averageScore: classAverage == null ? null : round2(classAverage),
+          averageScoreLabel: classAverage == null ? "-" : `${Math.round(classAverage)}%`,
+          severity:
+            classAverage == null
+              ? "neutral"
+              : classAverage < 65
+                ? "low"
+                : classAverage < 75
+                  ? "moderate"
+                  : "good",
+          learnerGrades,
+        };
+      });
+  },
+});
+
 export const listModuleInsights = query({
   args: { courseId: v.string() },
   handler: async (ctx, { courseId }) => {

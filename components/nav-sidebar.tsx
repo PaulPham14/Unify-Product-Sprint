@@ -164,6 +164,7 @@ const dashboardNav: { icon: React.ElementType; label: string; id: DashboardSubPa
   { icon: Sparkles, label: "For You", id: "for-you" },
   { icon: LayoutGrid, label: "Courses", id: "courses" },
   { icon: Users, label: "Learners", id: "learners" },
+  { icon: FileText, label: "Assessments", id: "assessments" },
 ]
 
 function DashboardSidebar({ activeSubPage, onSubPageChange }: { activeSubPage: DashboardSubPage; onSubPageChange: (p: DashboardSubPage) => void }) {

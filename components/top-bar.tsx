@@ -21,6 +21,7 @@ import {
   FolderOpen,
   Users,
   Info,
+  FileText,
 } from "lucide-react"
 import type { PageId, HomeSubPage, DashboardSubPage } from "./icon-sidebar"
 
@@ -149,6 +150,13 @@ function DashboardPageHeader({ subPage }: { subPage: DashboardSubPage }) {
         <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
           <Users className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Learner Insights</span>
+        </div>
+      )
+    case "assessments":
+      return (
+        <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Assessments</span>
         </div>
       )
     default:
