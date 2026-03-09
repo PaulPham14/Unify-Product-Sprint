@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -894,59 +895,32 @@ function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undef
             </div>
           ))
         )}
-        <div className="flex items-center gap-[156px]">
-          <div className="flex items-center gap-[10px]">
-            <span className="text-[10px] font-medium text-black">Show</span>
-            <div className="relative flex h-[27px] items-center">
-              <select
-                value={rowsPerPage}
-                onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-                className="h-full min-w-[52px] cursor-pointer appearance-none rounded-[4px] border border-[#afafaf] bg-white pl-[10px] pr-7 text-[10px] font-medium text-black focus:outline-none focus:ring-1 focus:ring-[#afafaf]"
-              >
-                {MODULE_INSIGHTS_ROW_OPTIONS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-1 h-4 w-4 text-black" aria-hidden />
-            </div>
-            <span className="text-[10px] font-medium text-black">Row</span>
-          </div>
-          <div className="flex items-center gap-[10px]">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
-              className="flex size-[34px] items-center justify-center rounded bg-[#f9f9f9] disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4 text-black" />
-            </button>
-            <div className="flex items-center">
-              {pageNumbers.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => typeof p === "number" && setPage(p)}
-                  className="flex w-[35px] items-center justify-center rounded p-[10px]"
+        <TablePagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageNumbers={pageNumbers}
+          onPageChange={setPage}
+          leftSlot={
+            <div className="flex items-center gap-[10px]">
+              <span className="text-[10px] font-medium text-black">Show</span>
+              <div className="relative flex h-[27px] items-center">
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+                  className="h-full min-w-[52px] cursor-pointer appearance-none rounded-[4px] border border-[#afafaf] bg-white pl-[10px] pr-7 text-[10px] font-medium text-black focus:outline-none focus:ring-1 focus:ring-[#afafaf]"
                 >
-                  <span
-                    className={`text-[10px] ${
-                      p === page ? "font-bold text-[#9727fc]" : "font-medium text-[#5b5b5b]"
-                    }`}
-                  >
-                    {p}
-                  </span>
-                </button>
-              ))}
+                  {MODULE_INSIGHTS_ROW_OPTIONS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1 h-4 w-4 text-black" aria-hidden />
+              </div>
+              <span className="text-[10px] font-medium text-black">Row</span>
             </div>
-            <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
-              className="flex size-[34px] items-center justify-center rounded bg-[#f2f2f2] disabled:opacity-40"
-            >
-              <ChevronRight className="h-4 w-4 text-black" />
-            </button>
-          </div>
-        </div>
+          }
+        />
       </div>
     </div>
   )
@@ -1024,52 +998,90 @@ function AssessmentTable({ assessments }: { assessments: AssessmentList }) {
           </div>
         ))}
 
-        <div className="flex items-center gap-[156px]">
-          <div className="flex items-center gap-[10px]">
-            <span className="text-[10px] font-medium text-black">Show</span>
-            <div className="flex h-[27px] items-center gap-[10px] rounded-[4px] border border-[#afafaf] bg-white px-[10px]">
-              <span className="text-[10px] font-medium text-black">{ROWS_PER_PAGE}</span>
-              <ChevronDown className="h-4 w-4 text-black" />
+        <TablePagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageNumbers={pageNumbers}
+          onPageChange={setPage}
+          leftSlot={
+            <div className="flex items-center gap-[10px]">
+              <span className="text-[10px] font-medium text-black">Show</span>
+              <div className="flex h-[27px] items-center gap-[10px] rounded-[4px] border border-[#afafaf] bg-white px-[10px]">
+                <span className="text-[10px] font-medium text-black">{ROWS_PER_PAGE}</span>
+                <ChevronDown className="h-4 w-4 text-black" />
+              </div>
+              <span className="text-[10px] font-medium text-black">Row</span>
             </div>
-            <span className="text-[10px] font-medium text-black">Row</span>
-          </div>
-          <div className="flex items-center gap-[10px]">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
-              className="flex size-[34px] items-center justify-center rounded bg-[#f9f9f9] disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4 text-black" />
-            </button>
-            <div className="flex items-center">
-              {pageNumbers.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => typeof p === "number" && setPage(p)}
-                  className="flex w-[35px] items-center justify-center rounded p-[10px]"
+          }
+        />
+      </div>
+    </div>
+  )
+}
+
+function TablePagination({
+  currentPage,
+  totalPages,
+  pageNumbers,
+  onPageChange,
+  leftSlot,
+}: {
+  currentPage: number
+  totalPages: number
+  pageNumbers: Array<number | "...">
+  onPageChange: (page: number) => void
+  leftSlot?: ReactNode
+}) {
+  return (
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
+      <div className="justify-self-start">{leftSlot}</div>
+      <div className="justify-self-center">
+        <div className="inline-flex items-center gap-[10px]">
+          <button
+            type="button"
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="flex size-[34px] items-center justify-center rounded-[4px] bg-[#f9f9f9] text-black disabled:opacity-40"
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="h-[14.9px] w-[14.9px]" strokeWidth={2.2} />
+          </button>
+          <div className="inline-flex items-center">
+            {pageNumbers.map((pageNumber, index) => (
+              <button
+                key={`${pageNumber}-${index}`}
+                type="button"
+                onClick={() => typeof pageNumber === "number" && onPageChange(pageNumber)}
+                disabled={pageNumber === "..."}
+                className="flex w-[35px] items-center justify-center rounded-[4px] px-[10px] py-[10px] disabled:cursor-default"
+                aria-current={pageNumber === currentPage ? "page" : undefined}
+              >
+                <span
+                  className={`leading-[1.4] ${
+                    pageNumber === currentPage
+                      ? "text-[10px] font-bold text-[#9727fc]"
+                      : pageNumber === "..."
+                        ? "text-[12.774px] font-medium text-[#5b5b5b]"
+                        : "text-[10px] font-medium text-[#5b5b5b]"
+                  }`}
                 >
-                  <span
-                    className={`text-[10px] ${
-                      p === page
-                        ? "font-bold text-[#9727fc]"
-                        : "font-medium text-[#5b5b5b]"
-                    }`}
-                  >
-                    {p}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
-              className="flex size-[34px] items-center justify-center rounded bg-[#f2f2f2] disabled:opacity-40"
-            >
-              <ChevronRight className="h-4 w-4 text-black" />
-            </button>
+                  {pageNumber}
+                </span>
+              </button>
+            ))}
           </div>
+          <button
+            type="button"
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="flex size-[34px] items-center justify-center rounded-[4px] bg-[#f2f2f2] text-black disabled:opacity-40"
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-[14.9px] w-[14.9px]" strokeWidth={2.2} />
+          </button>
         </div>
       </div>
+      <div aria-hidden className="justify-self-end" />
     </div>
   )
 }
@@ -1161,7 +1173,7 @@ function DashboardCoursesContentInner() {
     },
     {
       value: String(course.studentsAtRisk),
-      label: "Needs Attention",
+      label: "Students Needs Attention",
       action: "link" as const,
     },
     {
