@@ -413,6 +413,82 @@ export const listAssessments = query({
   },
 });
 
+export const createAssessment = mutation({
+  args: {
+    courseId: v.string(),
+    moduleId: v.string(),
+    name: v.string(),
+    assessmentKind: v.union(v.literal("assignment"), v.literal("quiz")),
+    dueDate: v.float64(),
+    aiAssistedGrading: v.boolean(),
+    instructions: v.optional(v.string()),
+    rubric: v.array(
+      v.object({
+        criterion: v.string(),
+        description: v.optional(v.string()),
+        weightPct: v.float64(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const course = await ctx.db
+      .query("courses")
+      .withIndex("by_courseId", (q) => q.eq("courseId", args.courseId))
+      .unique();
+    if (!course) throw new Error("Course not found.");
+
+    const moduleDoc = await ctx.db
+      .query("modules")
+      .withIndex("by_moduleId", (q) => q.eq("moduleId", args.moduleId))
+      .unique();
+    if (!moduleDoc) throw new Error("Module not found.");
+    if (moduleDoc.courseId !== args.courseId) {
+      throw new Error("Selected module does not belong to selected course.");
+    }
+
+    const cleanedName = args.name.trim();
+    if (!cleanedName) throw new Error("Assessment name is required.");
+
+    const filteredRubric = args.rubric
+      .map((item) => ({
+        criterion: item.criterion.trim(),
+        description: item.description?.trim(),
+        weightPct: item.weightPct,
+      }))
+      .filter((item) => item.criterion.length > 0 && item.weightPct > 0);
+
+    const rubricTotal = filteredRubric.reduce((sum, item) => sum + item.weightPct, 0);
+    if (filteredRubric.length === 0) throw new Error("At least one rubric criterion is required.");
+    if (Math.abs(rubricTotal - 100) > 0.01) {
+      throw new Error("Rubric weighting must total 100%.");
+    }
+
+    const existingRows = await ctx.db
+      .query("course_assessments")
+      .withIndex("by_courseId", (q) => q.eq("courseId", args.courseId))
+      .collect();
+    const nextOrder = existingRows.length > 0 ? Math.max(...existingRows.map((r) => r.order)) + 1 : 1;
+
+    await ctx.db.insert("course_assessments", {
+      courseId: args.courseId,
+      assessmentType: cleanedName,
+      assessmentName: cleanedName,
+      assessmentKind: args.assessmentKind,
+      moduleId: args.moduleId,
+      moduleLesson: `${course.title}/ Module ${moduleDoc.order ?? "-"}`,
+      dueDate: args.dueDate,
+      status: "in_progress",
+      averageScore: undefined,
+      order: nextOrder,
+      aiAssistedGrading: args.aiAssistedGrading,
+      instructions: args.instructions?.trim() || undefined,
+      rubric: filteredRubric,
+    });
+
+    return { ok: true };
+  },
+});
+
 function scoreLabelFromPct(scorePct: number | null) {
   if (scorePct == null) return null;
   return `${Math.round(scorePct)}%`;
@@ -457,14 +533,16 @@ export const listAssessmentInsights = query({
     return [...assessments]
       .sort((a, b) => a.order - b.order)
       .map((assessment) => {
-        const moduleNumFromLabel = Number(
-          (assessment.assessmentType.match(/(\d+)/)?.[1] ?? "0").trim(),
-        );
-        const taskTypeLabel = assessment.assessmentType.toLowerCase().includes("assignment")
-          ? "assignment"
-          : "quiz";
+        const moduleNumFromLabel = Number((assessment.assessmentType.match(/(\d+)/)?.[1] ?? "0").trim());
+        const taskTypeLabel =
+          assessment.assessmentKind ??
+          (assessment.assessmentType.toLowerCase().includes("assignment") ? "assignment" : "quiz");
         const moduleDoc =
-          sortedModules.find((m) => (m.order ?? 0) === moduleNumFromLabel) ?? null;
+          (assessment.moduleId
+            ? sortedModules.find((m) => m.moduleId === assessment.moduleId)
+            : null) ??
+          sortedModules.find((m) => (m.order ?? 0) === moduleNumFromLabel) ??
+          null;
         const expectedSuffix = taskTypeLabel === "assignment" ? "_assignment" : "_quiz";
         const matchedTaskResults = taskResults.filter((result) => {
           if (moduleDoc && result.moduleId !== moduleDoc.moduleId) return false;

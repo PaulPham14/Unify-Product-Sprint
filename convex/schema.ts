@@ -159,7 +159,21 @@ export default defineSchema({
   course_assessments: defineTable({
     courseId: v.string(),
     assessmentType: v.string(),
+    assessmentKind: v.optional(v.string()),
     moduleLesson: v.string(),
+    moduleId: v.optional(v.string()),
+    assessmentName: v.optional(v.string()),
+    aiAssistedGrading: v.optional(v.boolean()),
+    instructions: v.optional(v.string()),
+    rubric: v.optional(
+      v.array(
+        v.object({
+          criterion: v.string(),
+          description: v.optional(v.string()),
+          weightPct: v.float64(),
+        }),
+      ),
+    ),
     dueDate: v.float64(),
     status: v.string(),
     averageScore: v.optional(v.float64()),
