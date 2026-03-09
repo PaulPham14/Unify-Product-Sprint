@@ -314,6 +314,12 @@ export const getByCourseId = query({
       avgBehaviour * (config.masteryWeights.behaviourPct / 100)
     );
 
+    const masteryScore =
+      applicationContribution +
+      retrievalContribution +
+      retentionContribution +
+      behaviourContribution;
+
     return {
       ...course,
       totalStudents: courseUsers.length || course.totalStudents,
@@ -322,11 +328,8 @@ export const getByCourseId = query({
       diagnosisOnTrack: diagnosisCounts.on_track,
       diagnosisAtRisk: diagnosisCounts.at_risk,
       diagnosisDisengaged: diagnosisCounts.disengaged,
-      masteryScore:
-        applicationContribution +
-        retrievalContribution +
-        retentionContribution +
-        behaviourContribution,
+      cohortHealthScore: masteryScore,
+      masteryScore,
       applicationScore: applicationContribution,
       applicationMax: config.masteryWeights.applicationPct,
       retrievalScore: retrievalContribution,

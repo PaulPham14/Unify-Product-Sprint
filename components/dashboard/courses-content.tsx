@@ -1155,13 +1155,13 @@ function DashboardCoursesContentInner() {
 
   const stats = [
     {
-      value: `${course.cohortHealthScore}%`,
-      label: "Cohort Health Score",
+      value: `${course.masteryScore}%`,
+      label: "Cohort Mastery Score",
       action: "menu" as const,
     },
     {
       value: String(course.studentsAtRisk),
-      label: "Students At Risk",
+      label: "Needs Attention",
       action: "link" as const,
     },
     {
