@@ -9,26 +9,17 @@ export const getCourseProgressTrend = query({
   handler: async (ctx, { cohortId: inputCohortId }) => {
     const cohortId = inputCohortId ?? DEFAULT_COHORT_ID;
 
-    const modules = await ctx.db
-      .query("modules")
-      .withIndex("by_cohortId", (q) => q.eq("cohortId", cohortId))
-      .collect();
-
-    const snapshots = await ctx.db
-      .query("course_mastery_history")
-      .withIndex("by_cohortId", (q) => q.eq("cohortId", cohortId))
-      .collect();
-
-    if (snapshots.length === 0) {
-      return {
-        courses: modules.map((m, i) => ({
-          moduleId: m.moduleId,
-          title: m.title,
-          color: SERIES_COLORS[i % SERIES_COLORS.length],
-        })),
-        chartData: [] as Array<Record<string, number | string>>,
-      };
-    }
+    const [modules, courseDocs, snapshots] = await Promise.all([
+      ctx.db
+        .query("modules")
+        .withIndex("by_cohortId", (q) => q.eq("cohortId", cohortId))
+        .collect(),
+      ctx.db.query("courses").collect(),
+      ctx.db
+        .query("course_mastery_history")
+        .withIndex("by_cohortId", (q) => q.eq("cohortId", cohortId))
+        .collect(),
+    ]);
 
     // Keep last 4 weekly buckets for Figma-like Week 1..Week 4 axis.
     const nowSec = Date.now() / 1000;
@@ -37,24 +28,33 @@ export const getCourseProgressTrend = query({
     const ends = [3, 2, 1, 0].map((wAgo) => nowSec - wAgo * oneWeek);
     const weekLabels = ["Week 1", "Week 2", "Week 3", "Week 4"];
 
-    const moduleMeta = new Map(modules.map((m, i) => [m.moduleId, {
-      moduleId: m.moduleId,
-      title: m.title,
+    const courseTitleById = new Map(courseDocs.map((c) => [c.courseId, c.title]));
+    const moduleToCourseId = new Map(
+      modules
+        .filter((m) => !!m.courseId)
+        .map((m) => [m.moduleId, m.courseId as string]),
+    );
+
+    const courseIdsFromModules = modules
+      .map((m) => m.courseId)
+      .filter((id): id is string => !!id);
+    const courseIdsFromSnapshots = snapshots
+      .map((s) => s.courseId ?? moduleToCourseId.get(s.moduleId))
+      .filter((id): id is string => !!id);
+    const allCourseIds = Array.from(new Set([...courseIdsFromModules, ...courseIdsFromSnapshots]));
+
+    const courseList = allCourseIds.map((courseId, i) => ({
+      courseId,
+      title: courseTitleById.get(courseId) ?? courseId,
       color: SERIES_COLORS[i % SERIES_COLORS.length],
-    }]));
+    }));
 
-    // Include modules from snapshots even if not in modules table.
-    for (const s of snapshots) {
-      if (!moduleMeta.has(s.moduleId)) {
-        moduleMeta.set(s.moduleId, {
-          moduleId: s.moduleId,
-          title: s.moduleId,
-          color: SERIES_COLORS[moduleMeta.size % SERIES_COLORS.length],
-        });
-      }
+    if (courseList.length === 0) {
+      return {
+        courses: [] as Array<{ courseId: string; title: string; color: string }>,
+        chartData: [] as Array<Record<string, number | string>>,
+      };
     }
-
-    const courseList = Array.from(moduleMeta.values());
 
     const chartData = weekLabels.map((label, i) => {
       const start = starts[i];
@@ -62,11 +62,13 @@ export const getCourseProgressTrend = query({
       const row: Record<string, number | string> = { week: label };
 
       for (const c of courseList) {
-        const inBucket = snapshots.filter(
-          (s) => s.moduleId === c.moduleId && s.calculatedAt >= start && s.calculatedAt < end
-        );
+        const inBucket = snapshots.filter((s) => {
+          const snapshotCourseId = s.courseId ?? moduleToCourseId.get(s.moduleId);
+          return snapshotCourseId === c.courseId && s.calculatedAt >= start && s.calculatedAt < end;
+        });
         if (inBucket.length > 0) {
-          row[c.moduleId] = Math.round(
+          // Course progress: average ALL learner mastery snapshots for this course.
+          row[c.courseId] = Math.round(
             inBucket.reduce((acc, s) => acc + s.masteryScore, 0) / inBucket.length
           );
           continue;
@@ -74,9 +76,12 @@ export const getCourseProgressTrend = query({
 
         // If no bucket data, carry forward nearest historical point for smooth lines.
         const older = snapshots
-          .filter((s) => s.moduleId === c.moduleId && s.calculatedAt < end)
+          .filter((s) => {
+            const snapshotCourseId = s.courseId ?? moduleToCourseId.get(s.moduleId);
+            return snapshotCourseId === c.courseId && s.calculatedAt < end;
+          })
           .sort((a, b) => b.calculatedAt - a.calculatedAt)[0];
-        row[c.moduleId] = older ? Math.round(older.masteryScore) : 0;
+        row[c.courseId] = older ? Math.round(older.masteryScore) : 0;
       }
 
       return row;

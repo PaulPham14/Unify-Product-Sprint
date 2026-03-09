@@ -65,6 +65,14 @@ export const listConceptMasteryPeriods = query({
 
 const AT_RISK_MASTERY_THRESHOLD = 75;
 const AT_RISK_BUCKETS = new Set(["at_risk", "disengaged"]);
+const MAX_INSIGHTS = 5;
+
+function takeWorstInsights(items: Array<{ severity: number; text: string }>, max: number): string[] {
+  return items
+    .sort((a, b) => a.severity - b.severity)
+    .slice(0, max)
+    .map((x) => x.text);
+}
 
 /** At-risk learners only (low mastery or at_risk/disengaged), with insights for each. Empty when no one is doing bad. */
 export const getLowestPerformingAttention = query({
@@ -115,34 +123,21 @@ export const getLowestPerformingAttention = query({
 
       const masteryScore = Math.round(learner.masteryScore ?? 0);
       const riskBucket = (learner.riskBucket ?? "at_risk").toLowerCase();
-      const insights: string[] = [];
+      const insightItems: Array<{ severity: number; text: string }> = [];
+
+      // Severity 1 = worst, 2 = bad, 3 = moderate
 
       // Overall & risk
       if (masteryScore < AT_RISK_MASTERY_THRESHOLD) {
-        insights.push(`Overall mastery score is ${masteryScore}% (below the ${AT_RISK_MASTERY_THRESHOLD}% target).`);
+        insightItems.push({ severity: 1, text: `Overall mastery ${masteryScore}% (below ${AT_RISK_MASTERY_THRESHOLD}% target).` });
       }
       if (AT_RISK_BUCKETS.has(riskBucket)) {
-        insights.push(riskBucket === "disengaged"
-          ? "Marked as disengaged — inactive or very low engagement; may need re-engagement."
-          : "Marked as at risk — performance or engagement below expectations.");
-      }
-
-      // Component scores (application, retrieval/comprehension, retention, behaviour)
-      const appScore = learner.applicationScore != null ? Math.round(learner.applicationScore) : null;
-      const compScore = learner.comprehensionScore != null ? Math.round(learner.comprehensionScore) : null;
-      const retScore = learner.retentionScore != null ? Math.round(learner.retentionScore) : null;
-      const behScore = learner.behavioralScore != null ? Math.round(learner.behavioralScore) : null;
-      if (appScore != null && appScore < 60) {
-        insights.push(`Application score is low (${appScore}%) — applied tasks and projects may need support.`);
-      }
-      if (compScore != null && compScore < 60) {
-        insights.push(`Retrieval/comprehension is low (${compScore}%) — quiz and recall performance is weak.`);
-      }
-      if (retScore != null && retScore < 60) {
-        insights.push(`Retention score is low (${retScore}%) — material may not be sticking; consider reinforcement.`);
-      }
-      if (behScore != null && behScore < 60) {
-        insights.push(`Behaviour score is low (${behScore}%) — engagement patterns (replays, time, focus) need improvement.`);
+        insightItems.push({
+          severity: riskBucket === "disengaged" ? 1 : 2,
+          text: riskBucket === "disengaged"
+            ? "Disengaged — inactive or very low engagement; may need re-engagement."
+            : "At risk — performance or engagement below expectations.",
+        });
       }
 
       let moduleLabel = "this module";
@@ -169,18 +164,18 @@ export const getLowestPerformingAttention = query({
               quizResults.length)
           );
           if (quizScorePct < 60) {
-            insights.push(`Quiz score in ${moduleLabel} is ${quizScorePct}% — below passing; concept check needed.`);
+            insightItems.push({ severity: 1, text: `Quiz score in ${moduleLabel}: ${quizScorePct}% — below passing.` });
           } else if (quizScorePct < 75) {
-            insights.push(`Quiz score in ${moduleLabel} is ${quizScorePct}% — room for improvement.`);
+            insightItems.push({ severity: 2, text: `Quiz score in ${moduleLabel}: ${quizScorePct}% — room for improvement.` });
           }
         }
         const replay = moduleResults.reduce((s, r) => s + (r.contentReplayCount ?? 0), 0);
         if (replay > 0) {
           videoReplayCount = replay;
           if (replay >= 3) {
-            insights.push(`Video/content replayed ${replay}x in ${moduleLabel} — may be struggling with the material; consider concept walkthrough.`);
+            insightItems.push({ severity: 2, text: `Video replayed ${replay}x in ${moduleLabel} — may need concept walkthrough.` });
           } else {
-            insights.push(`Video replay ${replay}x in ${moduleLabel}.`);
+            insightItems.push({ severity: 3, text: `Video replay ${replay}x in ${moduleLabel}.` });
           }
         }
         const tasksInModule = await ctx.db
@@ -197,39 +192,43 @@ export const getLowestPerformingAttention = query({
             return !res || res.rubricScore == null;
           });
         if (assignmentIncomplete) {
-          insights.push(`Assignment incomplete in ${moduleLabel} — missing or incomplete submitted work.`);
+          insightItems.push({ severity: 1, text: `Assignment incomplete in ${moduleLabel}.` });
         }
-        // Low rubric on completed assignments
         const assignmentResults = moduleResults.filter((r) => {
           const t = assignmentTasks.find((t) => t.taskId === r.taskId || t.task_id === r.taskId);
           return t && r.rubricScore != null;
         });
         const lowRubric = assignmentResults.filter((r) => r.rubricScore != null && r.rubricScore < 60);
         if (lowRubric.length > 0) {
-          insights.push(`Assignment rubric score(s) below 60% in ${moduleLabel} — applied work needs improvement.`);
+          insightItems.push({ severity: 2, text: `Assignment rubric(s) below 60% in ${moduleLabel}.` });
         }
       } else {
-        insights.push("No module activity yet — encourage engagement and check for blockers.");
+        insightItems.push({ severity: 1, text: "No module activity yet — encourage engagement." });
       }
 
-      // Cross-module signals from all task results for this user
+      // Component scores
+      const appScore = learner.applicationScore != null ? Math.round(learner.applicationScore) : null;
+      const compScore = learner.comprehensionScore != null ? Math.round(learner.comprehensionScore) : null;
+      const retScore = learner.retentionScore != null ? Math.round(learner.retentionScore) : null;
+      const behScore = learner.behavioralScore != null ? Math.round(learner.behavioralScore) : null;
+      if (appScore != null && appScore < 60) insightItems.push({ severity: 2, text: `Application score low (${appScore}%).` });
+      if (compScore != null && compScore < 60) insightItems.push({ severity: 2, text: `Retrieval/comprehension low (${compScore}%).` });
+      if (retScore != null && retScore < 60) insightItems.push({ severity: 2, text: `Retention low (${retScore}%) — consider reinforcement.` });
+      if (behScore != null && behScore < 60) insightItems.push({ severity: 2, text: `Behaviour score low (${behScore}%).` });
+
+      // Cross-module
       const totalReplay = userTaskResults.reduce((s, r) => s + (r.contentReplayCount ?? 0), 0);
       const totalReread = userTaskResults.reduce((s, r) => s + (r.reReadCount ?? 0), 0);
       const highAttempts = userTaskResults.filter((r) => (r.attempts ?? 0) > 2);
       const helpRequests = userTaskResults.reduce((s, r) => s + (r.helpRequestCount ?? 0), 0);
       if (totalReplay >= 5 && (videoReplayCount == null || totalReplay > videoReplayCount)) {
-        insights.push(`High overall content replay (${totalReplay}x) — may need different explanation or pacing.`);
+        insightItems.push({ severity: 3, text: `High content replay (${totalReplay}x) overall.` });
       }
-      if (totalReread >= 3) {
-        insights.push(`Re-read count is high (${totalReread}) — retention or comprehension may be an issue.`);
-      }
-      if (highAttempts.length >= 2) {
-        insights.push(`Multiple tasks with 3+ attempts — consider targeted support on those topics.`);
-      }
-      if (helpRequests >= 2) {
-        insights.push(`Help requested ${helpRequests} time(s) — learner may need more scaffolding or office hours.`);
-      }
+      if (totalReread >= 3) insightItems.push({ severity: 3, text: `Re-read count high (${totalReread}).` });
+      if (highAttempts.length >= 2) insightItems.push({ severity: 3, text: "Multiple tasks with 3+ attempts." });
+      if (helpRequests >= 2) insightItems.push({ severity: 3, text: `Help requested ${helpRequests} time(s).` });
 
+      const insights = takeWorstInsights(insightItems, MAX_INSIGHTS);
       out.push({
         learnerId: learner._id,
         learnerName: learner.name ?? "Unknown",

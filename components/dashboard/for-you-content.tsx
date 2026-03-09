@@ -35,7 +35,7 @@ export function DashboardForYouContent() {
     const cfg: Record<string, { label: string; color: string }> = {}
     if (!trend?.courses) return cfg
     for (const c of trend.courses) {
-      cfg[c.moduleId] = { label: c.title, color: c.color }
+      cfg[c.courseId] = { label: c.title, color: c.color }
     }
     return cfg
   }, [trend?.courses])
@@ -177,9 +177,9 @@ export function DashboardForYouContent() {
                 <ChartTooltip content={<ChartTooltipContent />} />
                 {trend.courses.map((c) => (
                   <Line
-                    key={c.moduleId}
+                    key={c.courseId}
                     type="monotone"
-                    dataKey={c.moduleId}
+                    dataKey={c.courseId}
                     stroke={c.color}
                     strokeWidth={2.4}
                     dot={false}
@@ -191,7 +191,7 @@ export function DashboardForYouContent() {
 
           <div className="mt-2 flex flex-wrap items-center justify-center gap-6">
             {trend.courses.map((c) => (
-              <span key={c.moduleId} className="flex items-center gap-2 text-[10px] font-light text-black">
+              <span key={c.courseId} className="flex items-center gap-2 text-[10px] font-light text-black">
                 <span className="h-3 w-3 rounded-[3px]" style={{ backgroundColor: c.color }} />
                 {c.title}
               </span>
