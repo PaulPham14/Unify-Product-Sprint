@@ -252,6 +252,21 @@ export default defineSchema({
     .index("by_moduleId_conceptId", ["moduleId", "conceptId"])
     .index("by_userId", ["userId"]),
 
+  concept_engagement_analytics: defineTable({
+    courseId: v.string(),
+    moduleId: v.string(),
+    conceptId: v.string(),
+    lessonId: v.id("lesson"),
+    viewedCount: v.float64(),
+    droppedPct: v.float64(),
+    averageConsumedPct: v.float64(),
+    order: v.float64(),
+    updatedAt: v.float64(),
+  })
+    .index("by_moduleId", ["moduleId"])
+    .index("by_courseId_moduleId", ["courseId", "moduleId"])
+    .index("by_lessonId", ["lessonId"]),
+
   user: defineTable({
     applicationScore: v.optional(v.float64()),
     behavioralScore: v.optional(v.float64()),
