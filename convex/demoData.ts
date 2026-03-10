@@ -93,6 +93,7 @@ type ArchetypeDef = {
 };
 
 type SeededTaskResult = {
+  assessmentId?: string;
   assignmentWeight?: number;
   attempts?: number;
   confidenceScore?: number;
@@ -1205,8 +1206,11 @@ function generateLearnerSeed(
         820 + moduleDef.difficulty * 240 + conceptDef.difficulty * 180 + Math.abs(conceptSeed) * 120
       );
       const completionGate = seededNumber(`${learnerProfile.key}:${conceptDef.conceptId}:completion`);
+      const quizAssessmentId = buildAssessmentId(course.courseId, moduleDef.order, "quiz");
+      const assignmentAssessmentId = buildAssessmentId(course.courseId, moduleDef.order, "assignment");
 
       const quizRow: SeededTaskResult = {
+        assessmentId: quizAssessmentId,
         attempts: quizAttempts,
         confidenceScore,
         conceptIds: [conceptDef.conceptId],
@@ -1230,6 +1234,7 @@ function generateLearnerSeed(
         cohortId: DEMO_COHORT_ID,
       };
       const assignmentRow: SeededTaskResult = {
+        assessmentId: assignmentAssessmentId,
         assignmentWeight: round2(1 + moduleDef.difficulty * 0.35),
         confidenceScore: clamp(confidenceScore + 2, 22, 98),
         conceptIds: [conceptDef.conceptId],
@@ -1308,8 +1313,12 @@ function buildCourseAssessments(
 ) {
   const assessments: Array<{
     courseId: string;
+    assessmentId: string;
     assessmentType: string;
+    assessmentKind: string;
+    assessmentName: string;
     moduleLesson: string;
+    moduleId: string;
     dueDate: number;
     status: string;
     averageScore?: number;
@@ -1331,8 +1340,12 @@ function buildCourseAssessments(
 
     assessments.push({
       courseId: course.courseId,
+      assessmentId: buildAssessmentId(course.courseId, moduleDef.order, "quiz"),
       assessmentType: `Quiz ${moduleDef.order}`,
+      assessmentKind: "quiz",
+      assessmentName: `Quiz ${moduleDef.order}`,
       moduleLesson: `${moduleDef.title}/ Module ${moduleDef.order}`,
+      moduleId: moduleDef.moduleId,
       dueDate: quizDueDate,
       status: isFinalModule ? "in_progress" : "done",
       averageScore: isFinalModule ? undefined : round2(average(quizScores)),
@@ -1340,8 +1353,12 @@ function buildCourseAssessments(
     });
     assessments.push({
       courseId: course.courseId,
+      assessmentId: buildAssessmentId(course.courseId, moduleDef.order, "assignment"),
       assessmentType: `Assignment ${moduleDef.order}`,
+      assessmentKind: "assignment",
+      assessmentName: `Assignment ${moduleDef.order}`,
       moduleLesson: `${moduleDef.title}/ Module ${moduleDef.order}`,
+      moduleId: moduleDef.moduleId,
       dueDate: assignmentDueDate,
       status: moduleDef.order >= course.modules.length - 1 ? "in_progress" : "done",
       averageScore:
@@ -1414,6 +1431,10 @@ function assignmentTaskId(conceptId: string) {
 
 function retentionTaskId(conceptId: string) {
   return `${conceptId}_retention`;
+}
+
+function buildAssessmentId(courseId: string, moduleOrder: number, kind: "quiz" | "assignment") {
+  return `assessment_${courseId}_m${moduleOrder}_${kind}`;
 }
 
 function moduleRiskLabel(averageScore: number) {

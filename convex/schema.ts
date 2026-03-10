@@ -51,6 +51,7 @@ export default defineSchema({
     .index("by_moduleId", ["moduleId"]),
 
   task_results: defineTable({
+    assessmentId: v.optional(v.string()),
     attempts: v.optional(v.float64()),
     assignmentWeight: v.optional(v.float64()),
     cohortId: v.optional(v.string()),
@@ -82,6 +83,7 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_taskId", ["taskId"])
+    .index("by_assessmentId", ["assessmentId"])
     .index("by_cohortId", ["cohortId"])
     .index("by_courseId", ["courseId"])
     .index("by_moduleId", ["moduleId"])
@@ -158,6 +160,7 @@ export default defineSchema({
 
   course_assessments: defineTable({
     courseId: v.string(),
+    assessmentId: v.optional(v.string()),
     assessmentType: v.string(),
     assessmentKind: v.optional(v.string()),
     moduleLesson: v.string(),
@@ -180,6 +183,7 @@ export default defineSchema({
     order: v.float64(),
   })
     .index("by_courseId", ["courseId"])
+    .index("by_assessmentId", ["assessmentId"])
     .index("by_courseId_status", ["courseId", "status"]),
 
   score_history: defineTable({

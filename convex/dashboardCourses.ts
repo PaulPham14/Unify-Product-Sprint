@@ -468,9 +468,11 @@ export const createAssessment = mutation({
       .withIndex("by_courseId", (q) => q.eq("courseId", args.courseId))
       .collect();
     const nextOrder = existingRows.length > 0 ? Math.max(...existingRows.map((r) => r.order)) + 1 : 1;
+    const assessmentId = `assessment_${args.courseId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     await ctx.db.insert("course_assessments", {
       courseId: args.courseId,
+      assessmentId,
       assessmentType: cleanedName,
       assessmentName: cleanedName,
       assessmentKind: args.assessmentKind,
@@ -531,7 +533,7 @@ export const listAssessmentInsights = query({
     );
 
     return [...assessments]
-      .sort((a, b) => a.order - b.order)
+      .sort((a, b) => b.order - a.order)
       .map((assessment) => {
         const moduleNumFromLabel = Number((assessment.assessmentType.match(/(\d+)/)?.[1] ?? "0").trim());
         const taskTypeLabel =
@@ -545,9 +547,12 @@ export const listAssessmentInsights = query({
           null;
         const expectedSuffix = taskTypeLabel === "assignment" ? "_assignment" : "_quiz";
         const matchedTaskResults = taskResults.filter((result) => {
+          // Strict linkage: only grades tied to this exact assessment count.
+          if (!assessment.assessmentId) return false;
+          if (result.assessmentId !== assessment.assessmentId) return false;
+          // Defensive checks for migrated/legacy rows:
           if (moduleDoc && result.moduleId !== moduleDoc.moduleId) return false;
           if (!result.taskId.endsWith(expectedSuffix)) return false;
-          // Exclude retention quiz rows for "Quiz N" lines.
           if (taskTypeLabel === "quiz" && result.taskId.endsWith("_retention")) return false;
           return true;
         });
@@ -573,30 +578,31 @@ export const listAssessmentInsights = query({
           })
           .sort((a, b) => a.learnerName.localeCompare(b.learnerName));
 
+        const scoresWithValues = learnerGrades
+          .map((g) => g.rawScore)
+          .filter((value): value is number => value != null);
         const classAverage =
-          learnerGrades.length > 0
-            ? average(
-                learnerGrades
-                  .map((g) => g.rawScore)
-                  .filter((value): value is number => value != null),
-              )
-            : null;
+          scoresWithValues.length > 0 ? average(scoresWithValues) : null;
 
         const moduleDisplayOrder = moduleDoc?.order ?? moduleNumFromLabel;
+        // "Not started" when there are no submissions for this assessment (not when all scores are 0)
+        const hasAnySubmissions = matchedTaskResults.length > 0;
+        const displayStatus = hasAnySubmissions ? assessment.status : "not_started";
+        const showScore = hasAnySubmissions && classAverage != null;
 
         return {
           assessmentType: assessment.assessmentType,
           courseModuleLabel: `${course.title}/ Module ${moduleDisplayOrder || "-"}`,
           dueDate: assessment.dueDate,
-          status: assessment.status,
+          status: displayStatus,
           averageScore: classAverage == null ? null : round2(classAverage),
-          averageScoreLabel: classAverage == null ? "-" : `${Math.round(classAverage)}%`,
+          averageScoreLabel: showScore ? `${Math.round(classAverage!)}%` : "-",
           severity:
-            classAverage == null
+            !showScore
               ? "neutral"
-              : classAverage < 65
+              : classAverage! < 65
                 ? "low"
-                : classAverage < 75
+                : classAverage! < 75
                   ? "moderate"
                   : "good",
           learnerGrades,

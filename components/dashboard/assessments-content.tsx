@@ -56,18 +56,21 @@ const DEFAULT_RUBRIC: RubricItem[] = [
 ]
 
 function StatusPill({ status }: { status: string }) {
+  const notStarted = status === "not_started"
   const inProgress = status === "in_progress"
+  const label = notStarted ? "Not started" : inProgress ? "In Progress" : "Done"
+  const style = notStarted
+    ? "bg-[#f0f0f0] text-[#5b5b5b]"
+    : inProgress
+      ? "bg-[#f3e6ff] text-[#9727fc]"
+      : "bg-[#e1f3de] text-[#259800]"
+  const dotStyle = notStarted ? "bg-[#5b5b5b]" : inProgress ? "bg-[#9727fc]" : "bg-[#259800]"
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${
-        inProgress ? "bg-[#f3e6ff] text-[#9727fc]" : "bg-[#e1f3de] text-[#259800]"
-      }`}
+      className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${style}`}
     >
-      <span
-        className={`h-2 w-2 rounded-full ${inProgress ? "bg-[#9727fc]" : "bg-[#259800]"}`}
-        aria-hidden
-      />
-      {inProgress ? "In Progress" : "Done"}
+      <span className={`h-2 w-2 rounded-full ${dotStyle}`} aria-hidden />
+      {label}
     </span>
   )
 }
@@ -81,6 +84,8 @@ export function DashboardAssessmentsContent() {
   const [seeding, setSeeding] = useState(false)
   const [creating, setCreating] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [createMessage, setCreateMessage] = useState<string>("")
+  const [createError, setCreateError] = useState<string>("")
   const [selectedCourseId, setSelectedCourseId] = useState<string>("")
   const [selectedModuleId, setSelectedModuleId] = useState<string>("")
   const [page, setPage] = useState(1)
@@ -147,6 +152,8 @@ export function DashboardAssessmentsContent() {
   const handleCreateAssessment = async () => {
     if (!canCreate) return
     setCreating(true)
+    setCreateError("")
+    setCreateMessage("")
     try {
       await createAssessment({
         courseId: effectiveCourseId,
@@ -170,6 +177,10 @@ export function DashboardAssessmentsContent() {
       setInstructions("")
       setRubric(DEFAULT_RUBRIC)
       setPage(1)
+      setCreateMessage("Assessment created successfully.")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create assessment."
+      setCreateError(message)
     } finally {
       setCreating(false)
     }
@@ -378,6 +389,11 @@ export function DashboardAssessmentsContent() {
                 {creating ? "Creating..." : "Create Assessment"}
               </button>
             </div>
+            {createError ? (
+              <p className="mt-3 text-xs text-[#d1001f]">{createError}</p>
+            ) : createMessage ? (
+              <p className="mt-3 text-xs text-[#259800]">{createMessage}</p>
+            ) : null}
           </section>
         ) : (
           <>
@@ -419,6 +435,9 @@ export function DashboardAssessmentsContent() {
                 </button>
               </div>
             </div>
+            {createMessage ? (
+              <p className="text-xs text-[#259800]">{createMessage}</p>
+            ) : null}
 
             <section className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
               <div className="pb-2">
