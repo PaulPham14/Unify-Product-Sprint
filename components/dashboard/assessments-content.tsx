@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
@@ -76,6 +77,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export function DashboardAssessmentsContent() {
+  const router = useRouter()
   const convexAvailable = useConvexAvailable()
   const courses = useQuery(api.dashboardCourses.list, {})
   const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
@@ -465,11 +467,34 @@ export function DashboardAssessmentsContent() {
                     day: "numeric",
                     year: "numeric",
                   })
+                  const detailHref =
+                    row.assessmentId && effectiveCourseId
+                      ? `/dashboard/assessment-insight?courseId=${encodeURIComponent(effectiveCourseId)}&assessmentId=${encodeURIComponent(row.assessmentId)}`
+                      : null
 
                   return (
                     <div
                       key={`${row.assessmentType}-${idx}`}
-                      className={`grid grid-cols-5 items-center rounded-[4px] py-[6px] text-center text-xs text-black ${rowBg}`}
+                      role={detailHref ? "button" : undefined}
+                      tabIndex={detailHref ? 0 : undefined}
+                      onClick={
+                        detailHref
+                          ? () => router.push(detailHref)
+                          : undefined
+                      }
+                      onKeyDown={
+                        detailHref
+                          ? (e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault()
+                                router.push(detailHref!)
+                              }
+                            }
+                          : undefined
+                      }
+                      className={`grid grid-cols-5 items-center rounded-[4px] py-[6px] text-center text-xs text-black ${rowBg} ${
+                        detailHref ? "cursor-pointer transition-colors hover:bg-[#f0f0f0]" : ""
+                      }`}
                     >
                       <span>{row.assessmentType}</span>
                       <span>{row.courseModuleLabel}</span>
