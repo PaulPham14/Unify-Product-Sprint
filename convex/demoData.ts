@@ -1,4 +1,4 @@
-import { action, internalMutation } from "./_generated/server";
+import { action, internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {
@@ -525,12 +525,21 @@ export const reseedLearningIntelligenceDashboard = action({
     cohortLearnerCount: v.float64(),
     courseIds: v.array(v.string()),
   }),
-  handler: async (ctx): Promise<{
-    coursesSeeded: number;
-    learnersSeeded: number;
-    cohortLearnerCount: number;
-    courseIds: string[];
-  }> => {
+  handler: async (ctx) => {
+    return await ctx.runAction(internal.demoData.runReseedLearningIntelligenceDashboard, {});
+  },
+});
+
+/** Internal: full reseed. Used by seedDemoDataIfEmpty and reseedLearningIntelligenceDashboard. */
+export const runReseedLearningIntelligenceDashboard = internalAction({
+  args: {},
+  returns: v.object({
+    coursesSeeded: v.float64(),
+    learnersSeeded: v.float64(),
+    cohortLearnerCount: v.float64(),
+    courseIds: v.array(v.string()),
+  }),
+  handler: async (ctx) => {
     await ctx.runMutation(internal.demoData.cleanupDashboardSlice, {});
     await ctx.runMutation(internal.demoData.ensureInstructorAndCohort, {});
 
@@ -558,6 +567,21 @@ export const reseedLearningIntelligenceDashboard = action({
       cohortLearnerCount: cohort.learnerCount,
       courseIds: [...DEMO_COURSE_IDS],
     };
+  },
+});
+
+/** If there are no courses, run full demo seed so the dashboard has data. Call from UI when assessments/courses list is empty. */
+export const seedDemoDataIfEmpty = action({
+  args: {},
+  returns: v.object({ seeded: v.boolean(), courseCount: v.float64() }),
+  handler: async (ctx) => {
+    const { api } = await import("./_generated/api");
+    const courses = await ctx.runQuery(api.dashboardCourses.list, {});
+    if (courses.length > 0) {
+      return { seeded: false, courseCount: courses.length };
+    }
+    const result = await ctx.runAction(internal.demoData.runReseedLearningIntelligenceDashboard, {});
+    return { seeded: true, courseCount: result.coursesSeeded };
   },
 });
 
@@ -1105,6 +1129,14 @@ export const finalizeCourseAggregates = internalMutation({
       behaviourScore: behaviourContribution,
       behaviourMax: 10,
     });
+
+    const existingAssessments = await ctx.db
+      .query("course_assessments")
+      .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+      .collect();
+    for (const row of existingAssessments) {
+      await ctx.db.delete(row._id);
+    }
 
     const results = await ctx.db
       .query("task_results")

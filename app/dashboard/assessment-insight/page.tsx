@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useQuery } from "convex/react"
@@ -9,6 +9,18 @@ import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import { DashboardRouteShell } from "@/components/dashboard/dashboard-route-shell"
 import { buildDashboardHref } from "@/lib/dashboard-route-state"
 import { ChevronLeft } from "lucide-react"
+
+function getParamsFromUrl(): { courseId: string; assessmentId: string; order: number | undefined } {
+  if (typeof window === "undefined") return { courseId: "", assessmentId: "", order: undefined }
+  const params = new URLSearchParams(window.location.search)
+  const orderParam = params.get("order") ?? ""
+  const orderNum = orderParam !== "" ? Number(orderParam) : NaN
+  return {
+    courseId: params.get("courseId") ?? "",
+    assessmentId: params.get("assessmentId") ?? "",
+    order: Number.isFinite(orderNum) ? orderNum : undefined,
+  }
+}
 
 function StatusPill({ status }: { status: string }) {
   const notStarted = status === "not_started"
@@ -32,11 +44,14 @@ function StatusPill({ status }: { status: string }) {
 
 function AssessmentInsightContent() {
   const searchParams = useSearchParams()
-  const courseId = searchParams.get("courseId") ?? ""
-  const assessmentIdParam = searchParams.get("assessmentId") ?? ""
+  const [urlParams] = useState(() => getParamsFromUrl())
+
+  const courseId = searchParams.get("courseId") ?? urlParams.courseId
+  const assessmentIdParam = searchParams.get("assessmentId") ?? urlParams.assessmentId
   const orderParam = searchParams.get("order") ?? ""
-  const orderNum = orderParam !== "" ? Number(orderParam) : NaN
-  const order = Number.isFinite(orderNum) ? orderNum : undefined
+  const orderNum = orderParam !== "" ? Number(orderParam) : (urlParams.order ?? NaN)
+  const order = Number.isFinite(orderNum) ? orderNum : urlParams.order
+
   const convexAvailable = useConvexAvailable()
 
   const detail = useQuery(

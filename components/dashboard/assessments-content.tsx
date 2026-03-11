@@ -1,10 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
+import { buildDashboardHref } from "@/lib/dashboard-route-state"
 import {
   Select,
   SelectContent,
@@ -76,11 +78,30 @@ function StatusPill({ status }: { status: string }) {
   )
 }
 
-export function DashboardAssessmentsContent() {
+type AssessmentDetailProps = {
+  assessmentCourseId?: string | null
+  assessmentId?: string | null
+  assessmentOrder?: string | null
+}
+
+export function DashboardAssessmentsContent({
+  assessmentCourseId,
+  assessmentId,
+  assessmentOrder,
+}: AssessmentDetailProps = {}) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const convexAvailable = useConvexAvailable()
   const courses = useQuery(api.dashboardCourses.list, {})
   const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
+  const seedDemoDataIfEmpty = useAction(api.demoData.seedDemoDataIfEmpty)
   const createAssessment = useMutation(api.dashboardCourses.createAssessment)
+  const hasTriedAutoSeed = useRef(false)
+  const [loadTimeout, setLoadTimeout] = useState(false)
+
+  const assessmentCourseIdFromUrl = searchParams.get("assessmentCourseId") ?? assessmentCourseId ?? null
+  const assessmentIdFromUrl = searchParams.get("assessmentId") ?? assessmentId ?? null
+  const assessmentOrderFromUrl = searchParams.get("assessmentOrder") ?? assessmentOrder ?? null
 
   const [seeding, setSeeding] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -106,6 +127,42 @@ export function DashboardAssessmentsContent() {
     api.dashboardCourses.listAssessmentInsights,
     effectiveCourseId ? { courseId: effectiveCourseId } : "skip",
   )
+
+  const showDetail =
+    Boolean(assessmentCourseIdFromUrl) &&
+    (Boolean(assessmentIdFromUrl?.trim()) || (assessmentOrderFromUrl != null && assessmentOrderFromUrl !== ""))
+  const detailOrder =
+    assessmentOrderFromUrl != null && assessmentOrderFromUrl !== ""
+      ? Number(assessmentOrderFromUrl)
+      : undefined
+  const detailOrderValid = detailOrder === undefined || Number.isFinite(detailOrder)
+  const detailQueryArg =
+    showDetail &&
+    assessmentCourseIdFromUrl &&
+    (assessmentIdFromUrl?.trim() || detailOrderValid)
+  const detail = useQuery(
+    api.dashboardCourses.getAssessmentDetail,
+    detailQueryArg
+      ? {
+          courseId: assessmentCourseIdFromUrl!,
+          assessmentId: assessmentIdFromUrl?.trim() || undefined,
+          order: assessmentIdFromUrl?.trim() ? undefined : (detailOrderValid ? detailOrder : undefined),
+        }
+      : "skip",
+  )
+
+  useEffect(() => {
+    if (!showDetail || detail !== undefined) return
+    const t = setTimeout(() => setLoadTimeout(true), 8000)
+    return () => clearTimeout(t)
+  }, [showDetail, detail])
+
+  useEffect(() => {
+    if (!convexAvailable || hasTriedAutoSeed.current || courses === undefined) return
+    if (courses.length > 0) return
+    hasTriedAutoSeed.current = true
+    seedDemoDataIfEmpty({}).catch(() => {})
+  }, [convexAvailable, courses, seedDemoDataIfEmpty])
 
   useEffect(() => {
     if (!courseModules || courseModules.length === 0) {
@@ -191,6 +248,137 @@ export function DashboardAssessmentsContent() {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
         <p className="text-sm text-muted-foreground">Connect Convex to view assessments.</p>
+      </div>
+    )
+  }
+
+  const backToListHref = buildDashboardHref({ page: "dashboard", dashboardSubPage: "assessments" })
+
+  if (detailQueryArg && assessmentCourseIdFromUrl) {
+    if (detail === undefined) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
+          <p className="text-sm text-[#5b5b5b]">Loading…</p>
+          {loadTimeout && (
+            <>
+              <p className="text-xs text-[#5b5b5b]">Taking longer than expected.</p>
+              <Link
+                href={backToListHref}
+                className="text-sm font-medium text-[#9727fc] underline hover:no-underline"
+              >
+                Back to Assessments
+              </Link>
+            </>
+          )}
+        </div>
+      )
+    }
+    if (detail === null) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
+          <p className="text-sm text-[#5b5b5b]">Assessment not found.</p>
+          <Link href={backToListHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
+            Back to Assessments
+          </Link>
+        </div>
+      )
+    }
+    const dueDate = new Date(detail.dueDate).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
+    return (
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div className="mx-auto max-w-4xl px-6 py-8">
+          <Link
+            href={backToListHref}
+            className="mb-6 inline-flex items-center gap-1 text-xs font-medium text-[#5b5b5b] hover:text-black"
+          >
+            <span className="text-[18px] leading-none">←</span>
+            Back to Assessments
+          </Link>
+          <header className="mb-8 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-[24px] font-bold tracking-tight text-black">{detail.assessmentName}</h1>
+              <StatusPill status={detail.status} />
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-[#5b5b5b]">
+              <span>{detail.courseModuleLabel}</span>
+              <span>Due {dueDate}</span>
+              <span className="font-medium text-black">Class average: {detail.averageScoreLabel}</span>
+            </div>
+          </header>
+          {detail.instructions ? (
+            <section className="mb-8 rounded-[14px] border-2 border-[#eee] bg-[#f9f9f9] p-5">
+              <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#5b5b5b]">Instructions</h2>
+              <p className="whitespace-pre-wrap text-sm text-black">{detail.instructions}</p>
+            </section>
+          ) : null}
+          {detail.rubric && detail.rubric.length > 0 ? (
+            <section className="mb-8 rounded-[14px] border-2 border-[#eee] bg-white p-5">
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#5b5b5b]">Rubric</h2>
+              <ul className="space-y-2">
+                {detail.rubric.map((item, i) => (
+                  <li key={i} className="flex flex-col gap-0.5 text-sm">
+                    <span className="font-medium text-black">
+                      {item.criterion}
+                      <span className="ml-2 text-[#5b5b5b]">({item.weightPct}%)</span>
+                    </span>
+                    {item.description ? (
+                      <span className="text-xs text-[#5b5b5b]">{item.description}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          <section className="rounded-[14px] border-2 border-[#eee] bg-white">
+            <div className="border-b border-[#eee] p-4">
+              <h2 className="text-sm font-bold text-black">Student grades</h2>
+              <p className="mt-0.5 text-xs text-[#5b5b5b]">
+                {detail.learnerGrades.length} enrolled learner{detail.learnerGrades.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-[400px] w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#eee] bg-[#5b5b5b] text-xs font-bold text-white">
+                    <th className="px-4 py-3">Student</th>
+                    <th className="px-4 py-3 text-center">Grade</th>
+                    <th className="px-4 py-3 text-center">Submitted</th>
+                    <th className="px-4 py-3 text-center">Attempts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.learnerGrades.map((row) => (
+                    <tr
+                      key={String(row.learnerId)}
+                      className="border-b border-[#eee] last:border-b-0 hover:bg-[#f9f9f9]"
+                    >
+                      <td className="px-4 py-3 font-medium text-black">{row.learnerName}</td>
+                      <td className="px-4 py-3 text-center text-black">{row.scoreLabel ?? "—"}</td>
+                      <td className="px-4 py-3 text-center text-[#5b5b5b]">
+                        {row.submittedAt != null
+                          ? new Date(
+                              row.submittedAt < 1e12 ? row.submittedAt * 1000 : row.submittedAt,
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-center text-[#5b5b5b]">
+                        {row.attempts != null ? String(row.attempts) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </div>
     )
   }
@@ -466,10 +654,15 @@ export function DashboardAssessmentsContent() {
                     day: "numeric",
                     year: "numeric",
                   })
-                  const detailHref = effectiveCourseId
-                    ? row.assessmentId
-                      ? `/dashboard/assessment-insight?courseId=${encodeURIComponent(effectiveCourseId)}&assessmentId=${encodeURIComponent(row.assessmentId)}`
-                      : `/dashboard/assessment-insight?courseId=${encodeURIComponent(effectiveCourseId)}&order=${encodeURIComponent(String(row.order))}`
+                  const rowCourseId = (row as { courseId?: string }).courseId ?? effectiveCourseId
+                  const detailHref = rowCourseId
+                    ? buildDashboardHref({
+                        page: "dashboard",
+                        dashboardSubPage: "assessments",
+                        assessmentCourseId: rowCourseId,
+                        assessmentId: row.assessmentId ?? undefined,
+                        assessmentOrder: row.assessmentId ? undefined : String(row.order),
+                      })
                     : null
 
                   const rowContent = (
@@ -492,14 +685,21 @@ export function DashboardAssessmentsContent() {
 
                   if (detailHref) {
                     return (
-                      <Link
+                      <div
                         key={`${row.assessmentType}-${idx}`}
-                        href={detailHref}
+                        role="button"
+                        tabIndex={0}
                         className={rowClassName}
-                        style={{ textDecoration: "none", color: "inherit" }}
+                        onClick={() => router.push(detailHref)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            router.push(detailHref)
+                          }
+                        }}
                       >
                         {rowContent}
-                      </Link>
+                      </div>
                     )
                   }
                   return (

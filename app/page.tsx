@@ -99,7 +99,13 @@ function RootPageContent() {
       case "learners":
         return <LearnerInsightsContent initialLearnerId={routeState.learnerId} />
       case "assessments":
-        return <DashboardAssessmentsContent />
+        return (
+          <DashboardAssessmentsContent
+            assessmentCourseId={routeState.assessmentCourseId}
+            assessmentId={routeState.assessmentId}
+            assessmentOrder={routeState.assessmentOrder}
+          />
+        )
       default:
         return <DashboardForYouContent />
     }

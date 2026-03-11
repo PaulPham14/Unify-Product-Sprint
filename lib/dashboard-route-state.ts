@@ -13,6 +13,10 @@ export type DashboardRouteState = {
   homeSubPage: AppHomeSubPage
   dashboardSubPage: AppDashboardSubPage
   learnerId: string | null
+  /** When on assessments tab: open this assessment detail. */
+  assessmentCourseId: string | null
+  assessmentId: string | null
+  assessmentOrder: string | null
 }
 
 const VALID_PAGES = new Set<AppPageId>([
@@ -45,6 +49,9 @@ export function buildDashboardHref({
   homeSubPage,
   dashboardSubPage,
   learnerId,
+  assessmentCourseId,
+  assessmentId,
+  assessmentOrder,
 }: Partial<DashboardRouteState> & { page: AppPageId }) {
   const params = new URLSearchParams({ page })
 
@@ -60,6 +67,16 @@ export function buildDashboardHref({
     params.set("learnerId", learnerId)
   }
 
+  if (assessmentCourseId) {
+    params.set("assessmentCourseId", assessmentCourseId)
+  }
+  if (assessmentId) {
+    params.set("assessmentId", assessmentId)
+  }
+  if (assessmentOrder != null && assessmentOrder !== "") {
+    params.set("assessmentOrder", assessmentOrder)
+  }
+
   return `/?${params.toString()}`
 }
 
@@ -70,6 +87,9 @@ export function parseDashboardRouteState(
   const homeSubPage = searchParams.get("homeSubPage")
   const dashboardSubPage = searchParams.get("dashboardSubPage")
   const learnerId = searchParams.get("learnerId")
+  const assessmentCourseId = searchParams.get("assessmentCourseId")
+  const assessmentId = searchParams.get("assessmentId")
+  const assessmentOrder = searchParams.get("assessmentOrder")
 
   return {
     page: VALID_PAGES.has(page as AppPageId) ? (page as AppPageId) : "home",
@@ -82,5 +102,8 @@ export function parseDashboardRouteState(
       ? (dashboardSubPage as AppDashboardSubPage)
       : "courses",
     learnerId: learnerId || null,
+    assessmentCourseId: assessmentCourseId || null,
+    assessmentId: assessmentId || null,
+    assessmentOrder: assessmentOrder || null,
   }
 }

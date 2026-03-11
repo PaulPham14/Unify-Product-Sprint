@@ -13,6 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { format } from "date-fns"
@@ -143,6 +156,7 @@ function LearnerInsightsContentInner({
   const [selectedLearnerId, setSelectedLearnerId] = useState<Id<"user"> | "">(
     initialLearnerId ? (initialLearnerId as Id<"user">) : ""
   )
+  const [learnerDropdownOpen, setLearnerDropdownOpen] = useState(false)
   const [selectedCourseId, setSelectedCourseId] = useState<string>("all")
   const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(["Mastery"])
   const [progressRange, setProgressRange] = useState<ProgressRange>("all")
@@ -168,7 +182,9 @@ function LearnerInsightsContentInner({
 
   const learners = useMemo(() => {
     if (!cohortLearners) return []
-    return cohortLearners.filter((u) => u.role === "learner")
+    return [...cohortLearners]
+      .filter((u) => u.role === "learner")
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }))
   }, [cohortLearners])
 
   useEffect(() => {
@@ -283,22 +299,59 @@ function LearnerInsightsContentInner({
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={selectedLearnerId || "none"}
-            onValueChange={(v) => setSelectedLearnerId(v === "none" ? "" : (v as Id<"user">))}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select learner" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Select learner</SelectItem>
-              {learners.map((u) => (
-                <SelectItem key={u._id} value={u._id}>
-                  {u.name || (u.userId ? `Student ID ${u.userId}` : "Unknown")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={learnerDropdownOpen} onOpenChange={setLearnerDropdownOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex h-9 w-[200px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-2 focus-visible:ring-ring hover:bg-accent/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4"
+                aria-haspopup="listbox"
+                aria-expanded={learnerDropdownOpen}
+              >
+                <span className="truncate text-left">
+                  {selectedLearnerId
+                    ? learners.find((u) => u._id === selectedLearnerId)?.name ||
+                      learners.find((u) => u._id === selectedLearnerId)?.userId ||
+                      "Select learner"
+                    : "Select learner"}
+                </span>
+                <ChevronDown className="ml-2 shrink-0 opacity-50" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0" align="start">
+              <Command shouldFilter={true}>
+                <CommandInput placeholder="Search learners…" />
+                <CommandList>
+                  <CommandEmpty>No learner found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="Select learner"
+                      onSelect={() => {
+                        setSelectedLearnerId("")
+                        setLearnerDropdownOpen(false)
+                      }}
+                    >
+                      Select learner
+                    </CommandItem>
+                    {learners.map((u) => {
+                      const label = u.name || (u.userId ? `Student ID ${u.userId}` : "Unknown")
+                      return (
+                        <CommandItem
+                          key={u._id}
+                          value={`${label} ${u.userId ?? ""}`}
+                          onSelect={() => {
+                            setSelectedLearnerId(u._id)
+                            setLearnerDropdownOpen(false)
+                          }}
+                        >
+                          {label}
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <button
             type="button"
             onClick={handleSeedDemoData}

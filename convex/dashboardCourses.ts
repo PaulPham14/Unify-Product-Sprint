@@ -722,6 +722,7 @@ export const listAssessmentInsights = query({
         const showScore = hasAnySubmissions && classAverage != null;
 
         return {
+          courseId,
           assessmentId: assessment.assessmentId ?? null,
           order: assessment.order,
           assessmentType: assessment.assessmentType,
