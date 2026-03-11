@@ -6,9 +6,15 @@ import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
+import { TablePagination } from "@/components/dashboard/table-pagination"
 import { DashboardRouteShell } from "@/components/dashboard/dashboard-route-shell"
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { buildDashboardHref } from "@/lib/dashboard-route-state"
-import { ChevronDown, ChevronLeft, ExternalLink } from "lucide-react"
+import { ChevronDown, ChevronLeft, ExternalLink, Info } from "lucide-react"
 import { ActionModal, type ActionModalVariant } from "@/components/assign-review-quiz-modal"
 import {
   Area,
@@ -16,7 +22,7 @@ import {
   Label,
   ReferenceLine,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts"
@@ -30,6 +36,11 @@ const THRESHOLDS = [
 
 const STEP = 2
 const POINTS = Array.from({ length: Math.floor(100 / STEP) + 1 }, (_, i) => i * STEP)
+const CONCEPT_ENGAGEMENT_ROW_OPTIONS = [10, 20, 50] as const
+
+type ConceptEngagementList = NonNullable<
+  ReturnType<typeof useQuery<typeof api.dashboardCourses.listConceptEngagementByModule>>
+>
 
 function gaussianKDE(scores: number[], bandwidth: number) {
   const kernel = (u: number) => Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI)
@@ -75,6 +86,176 @@ function CohortRiskPill({ riskBucket }: { riskBucket: string }) {
   )
 }
 
+function buildPageNumbers(totalPages: number) {
+  const pages: Array<number | "..."> = []
+  for (let i = 1; i <= Math.min(5, totalPages); i += 1) pages.push(i)
+  if (totalPages > 6) pages.push("...")
+  if (totalPages > 5) pages.push(totalPages)
+  return pages
+}
+
+function ConceptEngagementConsumedCell({ value }: { value: number }) {
+  const roundedValue = Math.round(value)
+  const safeValue = Math.max(0, Math.min(100, roundedValue))
+  const markerValue = Math.max(2, Math.min(98, safeValue))
+
+  return (
+    <div className="flex w-[180px] flex-col items-end gap-[3px]">
+      <span className="w-full text-right text-[12px] leading-[15.671px] text-black">
+        {safeValue}%
+      </span>
+      <div className="relative h-[8px] w-full rounded-[100px] bg-[#d9d9d9]">
+        <div
+          className="absolute left-0 top-0 h-[8px] rounded-[100px] bg-[#7f23ff]"
+          style={{ width: `${safeValue}%` }}
+        />
+        <div
+          className="absolute top-1/2 h-[7.826px] w-[7.826px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.6px] border-[#d9d9d9] bg-[#7f23ff]"
+          style={{ left: `${markerValue}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function ConceptEngagementTable({
+  rows,
+}: {
+  rows: ConceptEngagementList | undefined
+}) {
+  const list = rows ?? []
+  const [page, setPage] = useState(1)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
+
+  useEffect(() => {
+    setPage(1)
+  }, [rowsPerPage, list.length])
+
+  const totalPages = Math.max(1, Math.ceil(list.length / rowsPerPage))
+  const safePage = Math.min(page, totalPages)
+  const pageRows = useMemo(() => {
+    const startIndex = (safePage - 1) * rowsPerPage
+    return list.slice(startIndex, startIndex + rowsPerPage)
+  }, [list, rowsPerPage, safePage])
+  const pageNumbers = useMemo(() => buildPageNumbers(totalPages), [totalPages])
+
+  return (
+    <div className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
+      <div className="py-2">
+        <span className="text-[14px] font-medium text-black">Concept Engagement</span>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-4">
+        <div className="overflow-x-auto">
+          <div className="min-w-[908px]">
+            <div className="grid grid-cols-[minmax(140px,1fr)_minmax(190px,1fr)_minmax(110px,1fr)_170px_minmax(220px,1fr)] items-start rounded-[4px] bg-[#5b5b5b] py-[5px]">
+              <div className="flex items-center justify-center">
+                <span className="text-[12px] font-bold leading-[1.5] text-white">Content</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <span className="text-[12px] font-bold leading-[1.5] text-white">Concept</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <span className="text-[12px] font-bold leading-[1.5] text-white">Viewed</span>
+              </div>
+              <div className="flex items-center justify-center gap-[5px]">
+                <span className="text-[12px] font-bold leading-[1.5] text-white">Dropped</span>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-[12px] w-[12px] items-center justify-center text-white/90"
+                      aria-label="What dropped means"
+                    >
+                      <Info className="h-[9.643px] w-[9.643px]" strokeWidth={2.2} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    sideOffset={10}
+                    className="w-[278px] rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left text-[12px] font-normal leading-normal text-black shadow-none [&>svg]:bg-white [&>svg]:fill-white"
+                  >
+                    Percentage of learners who viewed and exited the page before consuming 40% of the content.
+                  </TooltipContent>
+                </UITooltip>
+              </div>
+              <div className="flex items-center justify-center">
+                <span className="text-center text-[12px] font-bold leading-[1.5] text-white">
+                  Average Amount Consumed
+                </span>
+              </div>
+            </div>
+
+            {pageRows.length === 0 ? (
+              <div className="flex h-[120px] items-center justify-center rounded-[8px] bg-[#f9f9f9]">
+                <p className="text-xs text-[#5b5b5b]">No concept engagement data available for this module.</p>
+              </div>
+            ) : (
+              pageRows.map((row) => (
+                <div
+                  key={row.analyticsId}
+                  className="grid min-h-[27px] grid-cols-[minmax(140px,1fr)_minmax(190px,1fr)_minmax(110px,1fr)_170px_minmax(220px,1fr)] items-center"
+                >
+                  <div className="px-[10px] py-[7px]">
+                    <span className="block truncate text-[12px] leading-[1.5] text-black">
+                      {row.contentTitle}
+                    </span>
+                  </div>
+                  <div className="px-[10px] py-[7px] text-center">
+                    <span className="block truncate text-[12px] leading-[1.5] text-black">
+                      {row.conceptTitle}
+                    </span>
+                  </div>
+                  <div className="px-[10px] py-[7px] text-center">
+                    <span className="block text-[12px] leading-[1.5] text-black">
+                      {Math.round(row.viewedCount)} learners
+                    </span>
+                  </div>
+                  <div className="px-[10px] py-[7px] text-center">
+                    <span className="block text-[12px] leading-[1.5] text-black">
+                      {Math.round(row.droppedPct)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-center px-[10px] py-[7px]">
+                    <ConceptEngagementConsumedCell value={row.averageConsumedPct} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <TablePagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          pageNumbers={pageNumbers}
+          onPageChange={setPage}
+          leftSlot={
+            <div className="flex items-center gap-[10px]">
+              <span className="text-[10px] font-medium text-black">Show</span>
+              <div className="relative flex h-[27px] items-center">
+                <select
+                  value={rowsPerPage}
+                  onChange={(event) => setRowsPerPage(Number(event.target.value))}
+                  className="h-full min-w-[60px] cursor-pointer appearance-none rounded-[4px] border border-[#afafaf] bg-white pl-[10px] pr-7 text-[10px] font-medium text-black focus:outline-none focus:ring-1 focus:ring-[#afafaf]"
+                >
+                  {CONCEPT_ENGAGEMENT_ROW_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1 h-4 w-4 text-black" aria-hidden />
+              </div>
+              <span className="text-[10px] font-medium text-black">Row</span>
+            </div>
+          }
+        />
+      </div>
+    </div>
+  )
+}
+
 const RECOMMENDED_ACTIONS_PLACEHOLDER = [
   { title: "Retrieval Practice", action: "Assign review quiz" },
   { title: "Retention", action: "Send concept walkthrough" },
@@ -96,13 +277,13 @@ function ModuleInsightContent() {
     api.dashboardCourses.getModuleInsight,
     courseId && moduleId ? { courseId, moduleId } : "skip"
   )
-  const moduleDoc = useQuery(
-    api.modules.getByModuleId,
-    moduleId ? { moduleId } : "skip"
-  )
   const conceptSeries = useQuery(
     api.dashboardCourses.listConceptMasteryByModule,
     moduleId ? { moduleId } : "skip"
+  )
+  const conceptEngagement = useQuery(
+    api.dashboardCourses.listConceptEngagementByModule,
+    courseId && moduleId ? { courseId, moduleId } : "skip"
   )
   const cohortLearners = useQuery(api.users.listByCohort, { cohortId: "cohort_ai_001" })
   const coursesForModal = useQuery(api.dashboardCourses.list, {})
@@ -204,7 +385,7 @@ function ModuleInsightContent() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-white">
-      <div className="mx-auto max-w-4xl px-6 py-8">
+      <div className="mx-auto w-full max-w-[1320px] px-6 py-8">
         <Link
           href={backHref}
           className="mb-6 inline-flex items-center gap-1 text-xs font-medium text-[#5b5b5b] hover:text-black"
@@ -371,9 +552,9 @@ function ModuleInsightContent() {
                             style={{ fontSize: 11, fill: "#5b5b5b", fontWeight: 500 }}
                           />
                         </YAxis>
-                        <Tooltip
+                        <RechartsTooltip
                           contentStyle={{ borderRadius: 8, border: "1px solid #eee", fontSize: 11 }}
-                          labelFormatter={(v) => `${v}%`}
+                          labelFormatter={(value: string | number) => `${value}%`}
                           formatter={(value: number) =>
                             yAxisMode === "count"
                               ? [`${value}`, "Students"]
@@ -415,16 +596,9 @@ function ModuleInsightContent() {
             </div>
           </section>
 
-          {moduleDoc?.description && (
-            <section className="flex flex-col gap-4">
-              <h2 className="text-sm font-semibold tracking-[0.28px] text-black">
-                About this module
-              </h2>
-              <div className="rounded-[14px] border-2 border-[#eee] bg-white p-5">
-                <p className="text-sm text-[#5b5b5b]">{moduleDoc.description}</p>
-              </div>
-            </section>
-          )}
+          <section>
+            <ConceptEngagementTable rows={conceptEngagement ?? undefined} />
+          </section>
         </div>
       </div>
 
