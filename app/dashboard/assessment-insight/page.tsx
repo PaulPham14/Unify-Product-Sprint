@@ -33,12 +33,17 @@ function StatusPill({ status }: { status: string }) {
 function AssessmentInsightContent() {
   const searchParams = useSearchParams()
   const courseId = searchParams.get("courseId") ?? ""
-  const assessmentId = searchParams.get("assessmentId") ?? ""
+  const assessmentIdParam = searchParams.get("assessmentId") ?? ""
+  const orderParam = searchParams.get("order") ?? ""
+  const orderNum = orderParam !== "" ? Number(orderParam) : NaN
+  const order = Number.isFinite(orderNum) ? orderNum : undefined
   const convexAvailable = useConvexAvailable()
 
   const detail = useQuery(
     api.dashboardCourses.getAssessmentDetail,
-    courseId && assessmentId ? { courseId, assessmentId } : "skip",
+    courseId && (assessmentIdParam || order !== undefined)
+      ? { courseId, assessmentId: assessmentIdParam || undefined, order }
+      : "skip",
   )
 
   const backHref = buildDashboardHref({ page: "dashboard", dashboardSubPage: "assessments" })
@@ -57,7 +62,7 @@ function AssessmentInsightContent() {
     )
   }
 
-  if (!courseId || !assessmentId) {
+  if (!courseId || (!assessmentIdParam && order === undefined)) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">

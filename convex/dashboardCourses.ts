@@ -723,6 +723,7 @@ export const listAssessmentInsights = query({
 
         return {
           assessmentId: assessment.assessmentId ?? null,
+          order: assessment.order,
           assessmentType: assessment.assessmentType,
           courseModuleLabel: `${course.title}/ Module ${moduleDisplayOrder || "-"}`,
           dueDate: assessment.dueDate,
@@ -744,16 +745,34 @@ export const listAssessmentInsights = query({
 });
 
 export const getAssessmentDetail = query({
-  args: { courseId: v.string(), assessmentId: v.string() },
-  handler: async (ctx, { courseId, assessmentId }) => {
-    const [course, assessmentDoc, modules, enrollments, taskResults, users] = await Promise.all([
+  args: {
+    courseId: v.string(),
+    assessmentId: v.optional(v.string()),
+    order: v.optional(v.float64()),
+  },
+  handler: async (ctx, { courseId, assessmentId, order }) => {
+    let assessmentDoc = null;
+    if (assessmentId) {
+      assessmentDoc = await ctx.db
+        .query("course_assessments")
+        .withIndex("by_assessmentId", (q) => q.eq("assessmentId", assessmentId))
+        .unique();
+    }
+    if (!assessmentDoc && order != null) {
+      const allForCourse = await ctx.db
+        .query("course_assessments")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .collect();
+      assessmentDoc = allForCourse.find((a) => a.order === order) ?? null;
+    }
+    if (!assessmentDoc) return null;
+
+    const resolvedAssessmentId = assessmentDoc.assessmentId;
+
+    const [course, modules, enrollments, taskResults, users] = await Promise.all([
       ctx.db
         .query("courses")
         .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
-        .unique(),
-      ctx.db
-        .query("course_assessments")
-        .withIndex("by_assessmentId", (q) => q.eq("assessmentId", assessmentId))
         .unique(),
       ctx.db
         .query("modules")
@@ -794,7 +813,7 @@ export const getAssessmentDetail = query({
       null;
     const expectedSuffix = taskTypeLabel === "assignment" ? "_assignment" : "_quiz";
     const matchedTaskResults = taskResults.filter((result) => {
-      if (result.assessmentId !== assessmentId) return false;
+      if (resolvedAssessmentId != null && result.assessmentId !== resolvedAssessmentId) return false;
       if (moduleDoc && result.moduleId !== moduleDoc.moduleId) return false;
       if (!result.taskId.endsWith(expectedSuffix)) return false;
       if (taskTypeLabel === "quiz" && result.taskId.endsWith("_retention")) return false;

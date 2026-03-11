@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
@@ -77,7 +77,6 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export function DashboardAssessmentsContent() {
-  const router = useRouter()
   const convexAvailable = useConvexAvailable()
   const courses = useQuery(api.dashboardCourses.list, {})
   const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
@@ -467,35 +466,14 @@ export function DashboardAssessmentsContent() {
                     day: "numeric",
                     year: "numeric",
                   })
-                  const detailHref =
-                    row.assessmentId && effectiveCourseId
+                  const detailHref = effectiveCourseId
+                    ? row.assessmentId
                       ? `/dashboard/assessment-insight?courseId=${encodeURIComponent(effectiveCourseId)}&assessmentId=${encodeURIComponent(row.assessmentId)}`
-                      : null
+                      : `/dashboard/assessment-insight?courseId=${encodeURIComponent(effectiveCourseId)}&order=${encodeURIComponent(String(row.order))}`
+                    : null
 
-                  return (
-                    <div
-                      key={`${row.assessmentType}-${idx}`}
-                      role={detailHref ? "button" : undefined}
-                      tabIndex={detailHref ? 0 : undefined}
-                      onClick={
-                        detailHref
-                          ? () => router.push(detailHref)
-                          : undefined
-                      }
-                      onKeyDown={
-                        detailHref
-                          ? (e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault()
-                                router.push(detailHref!)
-                              }
-                            }
-                          : undefined
-                      }
-                      className={`grid grid-cols-5 items-center rounded-[4px] py-[6px] text-center text-xs text-black ${rowBg} ${
-                        detailHref ? "cursor-pointer transition-colors hover:bg-[#f0f0f0]" : ""
-                      }`}
-                    >
+                  const rowContent = (
+                    <>
                       <span>{row.assessmentType}</span>
                       <span>{row.courseModuleLabel}</span>
                       <span>{dueDate}</span>
@@ -505,6 +483,28 @@ export function DashboardAssessmentsContent() {
                       <span className={row.severity === "moderate" ? "font-medium" : ""}>
                         {row.averageScoreLabel}
                       </span>
+                    </>
+                  )
+
+                  const rowClassName = `grid grid-cols-5 items-center rounded-[4px] py-[6px] text-center text-xs text-black ${rowBg} ${
+                    detailHref ? "cursor-pointer transition-colors hover:bg-[#f0f0f0]" : ""
+                  }`
+
+                  if (detailHref) {
+                    return (
+                      <Link
+                        key={`${row.assessmentType}-${idx}`}
+                        href={detailHref}
+                        className={rowClassName}
+                        style={{ textDecoration: "none", color: "inherit" }}
+                      >
+                        {rowContent}
+                      </Link>
+                    )
+                  }
+                  return (
+                    <div key={`${row.assessmentType}-${idx}`} className={rowClassName}>
+                      {rowContent}
                     </div>
                   )
                 })}
