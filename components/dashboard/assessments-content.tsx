@@ -99,6 +99,7 @@ export function DashboardAssessmentsContent({
   const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
   const seedDemoDataIfEmpty = useAction(api.demoData.seedDemoDataIfEmpty)
   const createAssessment = useMutation(api.dashboardCourses.createAssessment)
+  const setScoreReleaseStatus = useMutation(api.dashboardCourses.setScoreReleaseStatus)
   const hasTriedAutoSeed = useRef(false)
   const [loadTimeout, setLoadTimeout] = useState(false)
 
@@ -826,12 +827,49 @@ export function DashboardAssessmentsContent({
                             <span className="text-sm text-black">{completedOn}</span>
                           </div>
                           <div className="flex flex-1 items-center justify-center gap-2 px-2.5 py-3">
-                            <span className="rounded-full bg-[#e1f3de] px-2.5 py-1 text-xs font-medium text-[#259800]">
-                              Yes
-                            </span>
-                            <span className="rounded-full bg-[#ffddd9] px-2.5 py-1 text-xs font-medium text-[#d1001f]">
-                              No
-                            </span>
+                            {row.releaseStatus != null ? (
+                              <span className="rounded-full bg-[#e5e5e5] px-2.5 py-1 text-xs font-medium text-[#5b5b5b]">
+                                Sent
+                                {row.releaseStatus.released ? " (Released)" : " (Not released)"}
+                              </span>
+                            ) : (detail.assessmentId && (row.userId ?? (typeof row.learnerId === "string" ? row.learnerId : undefined))) ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const userId = row.userId ?? (typeof row.learnerId === "string" ? row.learnerId : "")
+                                    if (!userId || !detail.assessmentId) return
+                                    setScoreReleaseStatus({
+                                      courseId: detail.courseId,
+                                      assessmentId: detail.assessmentId,
+                                      userId,
+                                      released: true,
+                                    })
+                                  }}
+                                  className="rounded-full bg-[#e1f3de] px-2.5 py-1 text-xs font-medium text-[#259800] transition-opacity hover:opacity-90"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const userId = row.userId ?? (typeof row.learnerId === "string" ? row.learnerId : "")
+                                    if (!userId || !detail.assessmentId) return
+                                    setScoreReleaseStatus({
+                                      courseId: detail.courseId,
+                                      assessmentId: detail.assessmentId,
+                                      userId,
+                                      released: false,
+                                    })
+                                  }}
+                                  className="rounded-full bg-[#ffddd9] px-2.5 py-1 text-xs font-medium text-[#d1001f] transition-opacity hover:opacity-90"
+                                >
+                                  No
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-[#9ca3af]">—</span>
+                            )}
                           </div>
                         </div>
                       )

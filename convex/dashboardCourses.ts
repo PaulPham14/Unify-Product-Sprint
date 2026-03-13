@@ -622,6 +622,43 @@ export const createAssessment = mutation({
   },
 });
 
+export const setScoreReleaseStatus = mutation({
+  args: {
+    courseId: v.string(),
+    assessmentId: v.string(),
+    userId: v.string(),
+    released: v.boolean(),
+  },
+  handler: async (ctx, { courseId, assessmentId, userId, released }) => {
+    const assessment = await ctx.db
+      .query("course_assessments")
+      .withIndex("by_assessmentId", (q) => q.eq("assessmentId", assessmentId))
+      .first();
+    if (!assessment || assessment.courseId !== courseId) {
+      throw new Error("Assessment not found.");
+    }
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("assessment_score_releases")
+      .withIndex("by_assessmentId_userId", (q) =>
+        q.eq("assessmentId", assessmentId).eq("userId", userId),
+      )
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { released, updatedAt: now });
+    } else {
+      await ctx.db.insert("assessment_score_releases", {
+        courseId,
+        assessmentId,
+        userId,
+        released,
+        updatedAt: now,
+      });
+    }
+    return { ok: true };
+  },
+});
+
 function scoreLabelFromPct(scorePct: number | null) {
   if (scorePct == null) return null;
   return `${Math.round(scorePct)}%`;
@@ -883,6 +920,7 @@ async function getAssessmentDetailImpl(
             : null;
         return {
           learnerId: learner?._id ?? enrollment.userId,
+          userId: enrollment.userId,
           learnerName: learner?.name ?? enrollment.userId,
           rawScore: learnerPct,
           scoreLabel: scoreLabelFromPct(learnerPct),
@@ -891,6 +929,24 @@ async function getAssessmentDetailImpl(
         };
       })
       .sort((a, b) => String(a.learnerName ?? "").localeCompare(String(b.learnerName ?? "")));
+
+    const releaseMap = new Map<
+      string,
+      { released: boolean; updatedAt: number }
+    >();
+    if (resolvedAssessmentId) {
+      const releases = await ctx.db
+        .query("assessment_score_releases")
+        .withIndex("by_assessmentId", (q) => q.eq("assessmentId", resolvedAssessmentId))
+        .collect();
+      for (const r of releases) {
+        releaseMap.set(r.userId, { released: r.released, updatedAt: r.updatedAt });
+      }
+    }
+    const learnerGradesWithRelease = learnerGrades.map((g) => ({
+      ...g,
+      releaseStatus: releaseMap.get(g.userId) ?? null,
+    }));
 
     const scoresWithValues = learnerGrades
       .map((g) => g.rawScore)
@@ -916,7 +972,7 @@ async function getAssessmentDetailImpl(
       instructions: assessmentDoc.instructions ?? undefined,
       rubric: assessmentDoc.rubric ?? undefined,
       assessmentKind: assessmentDoc.assessmentKind ?? undefined,
-      learnerGrades,
+      learnerGrades: learnerGradesWithRelease,
     };
 }
 

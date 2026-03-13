@@ -186,6 +186,16 @@ export default defineSchema({
     .index("by_assessmentId", ["assessmentId"])
     .index("by_courseId_status", ["courseId", "status"]),
 
+  assessment_score_releases: defineTable({
+    courseId: v.string(),
+    assessmentId: v.string(),
+    userId: v.string(),
+    released: v.boolean(),
+    updatedAt: v.number(),
+  })
+    .index("by_assessmentId", ["assessmentId"])
+    .index("by_assessmentId_userId", ["assessmentId", "userId"]),
+
   score_history: defineTable({
     userId: v.string(),
     applicationScore: v.float64(),
