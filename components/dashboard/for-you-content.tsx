@@ -1,8 +1,9 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { useQuery } from "convex/react"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, ChevronUp, ShieldAlert } from "lucide-react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import {
@@ -14,12 +15,36 @@ import {
 } from "@/components/ui/select"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
+import { buildCohortDiagnosisHref } from "@/lib/cohort-diagnosis"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
+
+/** Attention items for the For You dashboard (design: Figma 309-4386). Can be wired to Convex later. */
+const ATTENTION_ITEMS = [
+  {
+    id: "mastery",
+    message: "may need more attention, average mastery score",
+    value: "51%",
+    segment: "At Risk" as const,
+  },
+  {
+    id: "video-drop",
+    message: "have high video drop rate of",
+    value: "50%",
+    segment: "At Risk" as const,
+  },
+  {
+    id: "assessment",
+    message: "high assessment incomplete rate of",
+    value: "33%",
+    segment: "At Risk" as const,
+  },
+] as const
 
 export function DashboardForYouContent() {
   const convexAvailable = useConvexAvailable()
   const [month, setMonth] = useState("march_2026")
+  const [attentionExpanded, setAttentionExpanded] = useState(true)
   const trend = useQuery(api.cohortMastery.getCourseProgressTrend, {
     cohortId: INSTRUCTOR_COHORT_ID,
   })
@@ -70,6 +95,69 @@ export function DashboardForYouContent() {
           <div className="mx-auto max-w-4xl">
             <h1 className="text-3xl font-bold text-foreground">Hi Kasey</h1>
           </div>
+        </div>
+
+        {/* Attention banner (Figma 309-4386) */}
+        <div className="mx-auto max-w-4xl px-8">
+          <section
+            className="flex flex-col gap-4 rounded-[14px] border-2 border-[#d40e2b] bg-white p-4"
+            data-node-id="309:4386"
+          >
+            <div className="flex w-full items-start justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[#d40e2b]">
+                  <ShieldAlert className="h-6 w-6" aria-hidden />
+                </div>
+                <p className="text-sm font-medium text-[#d40e2b]">Attention</p>
+                <p className="text-xs font-normal text-muted-foreground">last updated 1:29pm</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttentionExpanded((e) => !e)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-expanded={attentionExpanded}
+                aria-label={attentionExpanded ? "Collapse attention" : "Expand attention"}
+              >
+                {attentionExpanded ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+            {attentionExpanded && (
+              <div className="w-full rounded-[14px] bg-[#fff3f3] p-2.5">
+                <ul className="list-disc space-y-2.5 pl-5">
+                  {ATTENTION_ITEMS.map((item, i) => {
+                    const courseLabel = trend.courses[0]?.title ?? "AI Fundamentals"
+                    const courseId = trend.courses[0]?.courseId ?? "course_ai_fundamentals"
+                    const moduleNum = 5 - i
+                    const insightsHref = buildCohortDiagnosisHref({
+                      courseId,
+                      segment: item.segment,
+                    })
+                    return (
+                      <li
+                        key={item.id}
+                        className="flex items-start justify-between gap-4 text-sm"
+                      >
+                        <span className="flex-1 font-medium text-foreground">
+                          {`${courseLabel} / Module ${moduleNum} ${item.message} `}
+                          <span className="font-bold">{item.value}</span>
+                        </span>
+                        <Link
+                          href={insightsHref}
+                          className="shrink-0 text-xs font-normal text-[#7f23ff] underline"
+                        >
+                          View Insights
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+          </section>
         </div>
 
         <div className="mx-auto max-w-4xl px-8">
