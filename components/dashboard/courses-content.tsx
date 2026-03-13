@@ -1104,7 +1104,7 @@ function DashboardCoursesContentInner() {
     },
     {
       value: String(course.studentsAtRisk),
-      label: "Students Needs Attention",
+      label: "Student need attention",
       action: "link" as const,
     },
     {

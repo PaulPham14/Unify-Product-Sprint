@@ -97,6 +97,7 @@ export function DashboardAssessmentsContent({
   const convexAvailable = useConvexAvailable()
   const courses = useQuery(api.dashboardCourses.list, {})
   const reseedDashboardDemo = useAction(api.demoData.reseedLearningIntelligenceDashboard)
+  const backfillTimeSpent = useAction(api.demoData.backfillTimeSpentForAssessments)
   const seedDemoDataIfEmpty = useAction(api.demoData.seedDemoDataIfEmpty)
   const createAssessment = useMutation(api.dashboardCourses.createAssessment)
   const setScoreReleaseStatus = useMutation(api.dashboardCourses.setScoreReleaseStatus)
@@ -112,6 +113,7 @@ export function DashboardAssessmentsContent({
   const assessmentTypeFromUrl = assessmentTypeRaw === "undefined" ? null : assessmentTypeRaw
 
   const [seeding, setSeeding] = useState(false)
+  const [backfilling, setBackfilling] = useState(false)
   const [creating, setCreating] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createMessage, setCreateMessage] = useState<string>("")
@@ -573,6 +575,25 @@ export function DashboardAssessmentsContent({
                   className="rounded-[10px] border border-[#e5e5e5] bg-white px-3 py-2 text-xs font-medium text-black hover:bg-[#f7f7f7] disabled:opacity-50"
                 >
                   {seeding ? "Reseeding..." : "Reseed detailed data"}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setBackfilling(true)
+                    setCreateMessage("")
+                    try {
+                      const { patched } = await backfillTimeSpent()
+                      setCreateMessage(patched > 0 ? `Populated time spent for ${patched} result(s). Open an assessment to see it.` : "Time spent already populated.")
+                    } catch (e) {
+                      setCreateError(e instanceof Error ? e.message : "Backfill failed")
+                    } finally {
+                      setBackfilling(false)
+                    }
+                  }}
+                  disabled={seeding || backfilling}
+                  className="rounded-[10px] border border-[#e5e5e5] bg-white px-3 py-2 text-xs font-medium text-black hover:bg-[#f7f7f7] disabled:opacity-50"
+                >
+                  {backfilling ? "Populating..." : "Populate time spent"}
                 </button>
                 <button
                   type="button"

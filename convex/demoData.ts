@@ -560,6 +560,7 @@ export const runReseedLearningIntelligenceDashboard = internalAction({
     }
 
     const cohort = await ctx.runMutation(internal.demoData.finalizeCohortRecord, {});
+    await ctx.runMutation(internal.demoData.backfillTaskResultsTimeSpent, {});
 
     return {
       coursesSeeded: DEMO_COURSE_IDS.length,
@@ -567,6 +568,34 @@ export const runReseedLearningIntelligenceDashboard = internalAction({
       cohortLearnerCount: cohort.learnerCount,
       courseIds: [...DEMO_COURSE_IDS],
     };
+  },
+});
+
+/** Backfill timeOnTaskSec for any task_result missing it (so Time Spent shows in assessment detail). */
+export const backfillTaskResultsTimeSpent = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const results = await ctx.db.query("task_results").collect();
+    let patched = 0;
+    for (const doc of results) {
+      if (doc.timeOnTaskSec != null) continue;
+      let hash = 0;
+      const str = (doc.resultId ?? doc._id) + (doc.taskId ?? "") + (doc.userId ?? "");
+      for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) % 1000003;
+      const timeOnTaskSec = 120 + (hash % 601);
+      await ctx.db.patch(doc._id, { timeOnTaskSec });
+      patched += 1;
+    }
+    return { patched };
+  },
+});
+
+/** Public action: backfill time spent on task_results so "Time Spent" shows in assessment detail. Call from UI when time spent is missing. */
+export const backfillTimeSpentForAssessments = action({
+  args: {},
+  returns: v.object({ patched: v.number() }),
+  handler: async (ctx) => {
+    return await ctx.runMutation(internal.demoData.backfillTaskResultsTimeSpent, {});
   },
 });
 
