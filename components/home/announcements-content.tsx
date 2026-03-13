@@ -38,7 +38,7 @@ export function AnnouncementsContent() {
               </button>
             </div>
             <div className="mt-4">
-              <h3 className="text-sm font-semibold text-foreground">Unify</h3>
+              <h3 className="text-sm font-semibold text-foreground">AI Fundamentals</h3>
               <p className="mt-1 text-sm text-foreground">Testing</p>
             </div>
             {/* Reaction */}

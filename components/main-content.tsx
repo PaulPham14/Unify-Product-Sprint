@@ -1,27 +1,57 @@
 "use client"
 
-import { useRef } from "react"
-import { ChevronRight } from "lucide-react"
+import { useRef, useCallback, useState, useEffect } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const recentlyViewed = [
   {
     type: "LESSON",
     title: "Top 5 Tips for Running Effective ...",
-    context: "in Zoom",
+    context: "in AI Fundamentals",
   },
   {
     type: "LESSON",
     title: "Canada Tax Filing Module for Ind...",
-    context: "in Resources",
+    context: "in AI for Sales & Business Strategy",
   },
 ]
 
+const SCROLL_AMOUNT = 420
+
 export function MainContent() {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    updateScrollState()
+    el.addEventListener("scroll", updateScrollState)
+    const ro = new ResizeObserver(updateScrollState)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener("scroll", updateScrollState)
+      ro.disconnect()
+    }
+  }, [updateScrollState])
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -SCROLL_AMOUNT, behavior: "smooth" })
+    }
+  }
 
   const scrollRight = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 300, behavior: "smooth" })
+      scrollRef.current.scrollBy({ left: SCROLL_AMOUNT, behavior: "smooth" })
     }
   }
 
@@ -36,28 +66,29 @@ export function MainContent() {
       </div>
 
       <div className="mx-auto max-w-4xl px-8 pb-10">
-        {/* Jump Back In */}
+        {/* Jump Back In — carousel */}
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-foreground">Jump Back In</h2>
-          <div className="relative mt-3">
+          <div className="relative mt-3 overflow-hidden">
             <div
               ref={scrollRef}
-              className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
+              className="flex gap-4 overflow-x-auto overflow-y-hidden pb-2 scroll-smooth scrollbar-hide"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {/* Zoom combined card: gradient left + info right */}
-              <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+              {/* AI Fundamentals — matches database course title */}
+              <div className="flex min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card sm:min-w-[360px]">
                 <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-500 to-purple-600 p-4">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
-                  <span className="text-base font-semibold text-white">Zoom</span>
+                  <span className="text-base font-semibold text-white">AI Fundamentals</span>
                 </div>
                 <div className="flex h-28 w-56 flex-col justify-between p-4">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
                     Course
                   </span>
                   <div>
-                    <span className="text-sm font-semibold text-foreground">Zoom</span>
+                    <span className="text-sm font-semibold text-foreground">AI Fundamentals</span>
                     <div className="mt-2 flex items-center justify-end gap-2">
                       <span className="text-xs text-muted-foreground">0%</span>
                       <div className="h-1.5 w-24 rounded-full bg-secondary">
@@ -71,20 +102,20 @@ export function MainContent() {
                 </div>
               </div>
 
-              {/* Unify Taxes combined card: gradient left + info right */}
-              <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+              {/* AI for Sales & Business Strategy — from database */}
+              <div className="flex min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card sm:min-w-[360px]">
                 <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-400 to-purple-500 p-4">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
-                  <span className="text-base font-semibold text-white">Unify Taxes</span>
+                  <span className="text-base font-semibold text-white">AI for Sales & Business Strategy</span>
                 </div>
                 <div className="flex h-28 w-56 flex-col justify-between p-4">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
                     Course
                   </span>
                   <div>
-                    <span className="text-sm font-semibold text-foreground">Unify Taxes</span>
+                    <span className="text-sm font-semibold text-foreground">AI for Sales & Business Strategy</span>
                     <div className="mt-2 flex items-center justify-end gap-2">
                       <span className="text-xs text-muted-foreground">0%</span>
                       <div className="h-1.5 w-24 rounded-full bg-secondary">
@@ -98,25 +129,37 @@ export function MainContent() {
                 </div>
               </div>
 
-              {/* Partially visible card peeking from the right */}
-              <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
+              {/* Unify Taxes — from database (peek card) */}
+              <div className="flex min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card sm:min-w-[360px]">
                 <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-purple-300 to-violet-400 p-4 opacity-80">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
                   <span className="text-base font-semibold text-white">
-                    {"U..."}
+                    Unify Taxes
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Scroll right button */}
+            {/* Carousel buttons — identical style */}
             <button
-              onClick={scrollRight}
-              className="absolute right-0 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card shadow-sm text-muted-foreground hover:text-foreground transition-colors"
+              type="button"
+              onClick={scrollLeft}
+              disabled={!canScrollLeft}
+              aria-label="Scroll left"
+              className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={scrollRight}
+              disabled={!canScrollRight}
+              aria-label="Scroll right"
+              className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            >
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         </section>

@@ -36,7 +36,7 @@ export function AcademyContent() {
                   </p>
                 </div>
               </div>
-              <h3 className="mt-3 text-sm font-semibold text-foreground">Unify</h3>
+              <h3 className="mt-3 text-sm font-semibold text-foreground">AI Fundamentals</h3>
               <div className="mt-3 flex items-center gap-4 text-muted-foreground">
                 <button className="flex items-center gap-1 text-xs hover:text-foreground transition-colors">
                   <SmilePlus className="h-3.5 w-3.5" />

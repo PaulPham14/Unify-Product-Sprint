@@ -49,8 +49,8 @@ const helpfulLinks = [
 ]
 
 const learningCourses = [
-  { label: "Unify", draft: true, color: "bg-purple-300" },
-  { label: "Zoom", draft: false, color: "bg-violet-500" },
+  { label: "AI Fundamentals", draft: true, color: "bg-purple-300" },
+  { label: "AI for Sales & Business Strategy", draft: false, color: "bg-violet-500" },
 ]
 
 const adminNav = [

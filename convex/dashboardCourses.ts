@@ -1002,6 +1002,24 @@ export const listModuleInsights = query({
   },
 });
 
+export const listWorstModuleInsights = query({
+  args: { limit: v.optional(v.float64()) },
+  handler: async (ctx, { limit }) => {
+    const courseRows = await ctx.db.query("courses").collect();
+    if (courseRows.length === 0) return [];
+
+    const perCourseRows = await Promise.all(
+      courseRows.map((course) => getComputedModuleInsights(ctx, course.courseId))
+    );
+    const allRows = perCourseRows.flat();
+    const safeLimit = Math.max(1, Math.min(10, Math.floor(limit ?? 3)));
+
+    return allRows
+      .sort((left, right) => left.averageScore - right.averageScore)
+      .slice(0, safeLimit);
+  },
+});
+
 export const getModuleInsight = query({
   args: { courseId: v.string(), moduleId: v.string() },
   handler: async (ctx, { courseId, moduleId }) => {

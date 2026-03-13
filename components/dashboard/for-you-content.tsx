@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from "react"
 import { useQuery } from "convex/react"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import Link from "next/link"
+import { ChevronDown, ChevronRight, ChevronUp, ShieldAlert } from "lucide-react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import {
@@ -23,6 +24,18 @@ export function DashboardForYouContent() {
   const trend = useQuery(api.cohortMastery.getCourseProgressTrend, {
     cohortId: INSTRUCTOR_COHORT_ID,
   })
+  const listWorstModuleInsightsQuery = (api.dashboardCourses as unknown as Record<string, unknown>)
+    .listWorstModuleInsights as never
+  const worstModuleInsights = useQuery(listWorstModuleInsightsQuery, { limit: 3 }) as
+    | Array<{
+        courseId: string
+        moduleId: string
+        moduleLabel: string
+        courseTitle: string
+        averageScore: number
+        cohortRiskBucket: string
+      }>
+    | undefined
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const monthOptions = [
@@ -39,6 +52,11 @@ export function DashboardForYouContent() {
     }
     return cfg
   }, [trend?.courses])
+
+  const lastUpdatedLabel = useMemo(() => {
+    const now = new Date()
+    return now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase()
+  }, [])
 
   const scrollRight = () => {
     if (scrollRef.current) {
@@ -85,14 +103,14 @@ export function DashboardForYouContent() {
                     <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                       Course
                     </span>
-                    <span className="text-base font-semibold text-white">Zoom</span>
+                    <span className="text-base font-semibold text-white">AI for Sales & Business Strategy</span>
                   </div>
                   <div className="flex h-28 w-56 flex-col justify-between p-4">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
                       Course
                     </span>
                     <div>
-                      <span className="text-sm font-semibold text-foreground">Zoom</span>
+                      <span className="text-sm font-semibold text-foreground">AI for Sales & Business Strategy</span>
                       <div className="mt-2 flex items-center justify-end gap-2">
                         <span className="text-xs text-muted-foreground">0%</span>
                         <div className="h-1.5 w-24 rounded-full bg-secondary">
@@ -145,6 +163,45 @@ export function DashboardForYouContent() {
             </div>
           </section>
         </div>
+
+        <section className="rounded-[14px] border-2 border-[#d40e2b] bg-white p-4">
+          <div className="rounded-[10px] bg-[#f2f2f2] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ShieldAlert className="h-5 w-5 text-[#d40e2b]" aria-hidden />
+                <span className="text-sm font-medium text-[#d40e2b]">Attention</span>
+                <span className="text-xs text-black">last updated {lastUpdatedLabel}</span>
+              </div>
+              <ChevronUp className="h-5 w-5 text-black" aria-hidden />
+            </div>
+
+            <div className="rounded-[14px] bg-[#fff3f3] p-3">
+              <ul className="space-y-2">
+                {(worstModuleInsights ?? []).map((row) => (
+                  <li
+                    key={`${row.courseId}:${row.moduleId}`}
+                    className="flex items-start justify-between gap-3 text-sm text-black"
+                  >
+                    <span className="pl-1 leading-[1.4]">
+                      <span className="mr-2 align-middle text-black">•</span>
+                      {row.courseTitle}/ {row.moduleLabel} may need more attention, average mastery score{" "}
+                      <span className="font-bold">{Math.round(row.averageScore)}%</span>
+                    </span>
+                    <Link
+                      href={`/dashboard/module-insight?courseId=${encodeURIComponent(row.courseId)}&moduleId=${encodeURIComponent(row.moduleId)}`}
+                      className="shrink-0 text-xs text-[#7f23ff] underline hover:no-underline"
+                    >
+                      View Insights
+                    </Link>
+                  </li>
+                ))}
+                {worstModuleInsights && worstModuleInsights.length === 0 ? (
+                  <li className="text-sm text-[#5b5b5b]">No module insights available yet.</li>
+                ) : null}
+              </ul>
+            </div>
+          </div>
+        </section>
 
         <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
           Course Performance Insights
