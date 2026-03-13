@@ -191,6 +191,34 @@ export function DashboardAssessmentsContent({
     [rubric],
   )
 
+  const balanceRubricTo100 = () => {
+    if (rubric.length === 0) return
+    const total = rubric.reduce((sum, row) => sum + Number(row.weightPct || 0), 0)
+    if (total <= 0) {
+      const equal = Math.floor((100 / rubric.length) * 100) / 100
+      const remainder = Math.round((100 - equal * (rubric.length - 1)) * 100) / 100
+      setRubric(
+        rubric.map((row, i) => ({
+          ...row,
+          weightPct: i === rubric.length - 1 ? remainder : equal,
+        })),
+      )
+      return
+    }
+    const scale = 100 / total
+    const scaled = rubric.map((row, i) => {
+      const value = Number(row.weightPct || 0) * scale
+      return { ...row, weightPct: Math.round(value * 100) / 100 }
+    })
+    const sum = scaled.reduce((s, r) => s + r.weightPct, 0)
+    const diff = Math.round((100 - sum) * 100) / 100
+    if (diff !== 0 && scaled.length > 0) {
+      const last = scaled.length - 1
+      scaled[last] = { ...scaled[last], weightPct: Math.round((scaled[last].weightPct + diff) * 100) / 100 }
+    }
+    setRubric(scaled)
+  }
+
   const canCreate =
     name.trim().length > 0 &&
     effectiveCourseId.length > 0 &&
@@ -516,14 +544,31 @@ export function DashboardAssessmentsContent({
                             aria-label="Criterion description"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-right text-sm font-medium text-[#7f23ff]">
-                            {Math.round(row.weightPct)}%
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.5}
+                              value={row.weightPct}
+                              onChange={(e) => {
+                                const raw = e.target.value === "" ? 0 : Number(e.target.value)
+                                const clamped = Math.min(100, Math.max(0, Number.isFinite(raw) ? raw : 0))
+                                const next = [...rubric]
+                                next[idx] = { ...row, weightPct: clamped }
+                                setRubric(next)
+                              }}
+                              className="w-16 rounded-[8px] border-2 border-[#e5e5e5] bg-white px-2 py-1.5 text-right text-sm font-medium text-black outline-none focus:border-[#9727fc] focus:ring-1 focus:ring-[#9727fc]/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              aria-label="Weight percentage"
+                            />
+                            <span className="text-sm font-medium text-[#7f23ff]">%</span>
                           </div>
                           <input
                             type="range"
                             min={0}
                             max={100}
+                            step={1}
                             value={row.weightPct}
                             onChange={(e) => {
                               const next = [...rubric]
@@ -531,6 +576,7 @@ export function DashboardAssessmentsContent({
                               setRubric(next)
                             }}
                             className="w-full accent-[#7f23ff]"
+                            aria-label="Weight slider"
                           />
                           <div className="flex justify-between text-[10px] text-[#adadad]">
                             <span>0%</span>
@@ -555,11 +601,33 @@ export function DashboardAssessmentsContent({
                   + Add Criterion
                 </button>
 
-                <p
-                  className={`text-xs ${Math.abs(rubricTotal - 100) < 0.01 ? "text-[#259800]" : "text-[#d1001f]"}`}
-                >
-                  Rubric total: {Math.round(rubricTotal)}% (must equal 100%)
-                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#6b7280]">Rubric total</span>
+                    <span
+                      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums ${
+                        Math.abs(rubricTotal - 100) < 0.01
+                          ? "bg-[#dcfce7] text-[#166534]"
+                          : "bg-[#fee2e2] text-[#991b1b]"
+                      }`}
+                    >
+                      {Math.round(rubricTotal * 100) / 100}%
+                    </span>
+                    {Math.abs(rubricTotal - 100) >= 0.01 && (
+                      <span className="text-xs text-[#9ca3af]">— must equal 100%</span>
+                    )}
+                    {Math.abs(rubricTotal - 100) < 0.01 && (
+                      <span className="text-xs text-[#259800]" aria-hidden>✓</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={balanceRubricTo100}
+                    className="rounded-[8px] border border-[#7f23ff] bg-[#f3e6ff] px-3 py-1.5 text-xs font-medium text-[#7f23ff] hover:bg-[#ede0fc]"
+                  >
+                    Balance to 100%
+                  </button>
+                </div>
               </div>
             </div>
 
