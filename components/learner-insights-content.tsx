@@ -298,19 +298,17 @@ function LearnerInsightsContentInner({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background">
+    <div className={`flex-1 overflow-y-auto bg-background ${isLearnerPreviewMode ? "pt-[48px]" : ""}`}>
       {isLearnerPreviewMode ? (
-        <div className="w-full bg-[#27272a] px-6 py-3">
-          <div className="mx-auto flex max-w-6xl items-center justify-between">
-            <span className="text-[14px] font-medium text-white">Previewing as Learner</span>
-            <button
-              type="button"
-              onClick={() => setIsLearnerPreviewMode(false)}
-              className="rounded-[10px] bg-white px-[10px] py-[8px] text-[12px] font-medium text-black"
-            >
-              Exit Mode
-            </button>
-          </div>
+        <div className="fixed left-0 top-0 z-50 flex w-full items-center justify-between bg-[#27272a] px-6 py-3">
+          <span className="text-[14px] font-medium text-white">Previewing as Learner</span>
+          <button
+            type="button"
+            onClick={() => setIsLearnerPreviewMode(false)}
+            className="rounded-[10px] bg-white px-[10px] py-[8px] text-[12px] font-medium text-black"
+          >
+            Exit Mode
+          </button>
         </div>
       ) : null}
       <div className="mx-auto max-w-6xl space-y-6 p-6">
@@ -400,7 +398,7 @@ function LearnerInsightsContentInner({
               {recalculating ? "Recalculating…" : "Recalculate scores"}
             </button>
           )}
-          {hasLearnerSelection && (
+          {hasLearnerSelection && !isLearnerPreviewMode && (
             <button
               type="button"
               onClick={() => setIsLearnerPreviewMode(true)}
