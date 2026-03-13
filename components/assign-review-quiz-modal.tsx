@@ -24,13 +24,21 @@ const RISK_BADGE_STYLES: Record<RiskBadgeLevel, string> = {
   positive: "bg-[#e1f3de] text-[#259800]",
 }
 
-export type ActionModalVariant = "review_quiz" | "concept_walkthrough" | "office_hours"
+export type ActionModalVariant = "review_quiz" | "concept_walkthrough" | "office_hours" | "spaced_quiz"
 
 const VARIANT_CONFIG: Record<ActionModalVariant, { title: string }> = {
   review_quiz: { title: "Assign Review Quiz" },
   concept_walkthrough: { title: "Concept Walkthrough" },
   office_hours: { title: "Office Hours" },
+  spaced_quiz: { title: "Send Spaced Quizzes" },
 }
+
+const SPACED_QUIZ_FREQUENCIES = [
+  { id: "1", label: "1 week" },
+  { id: "2", label: "2 weeks" },
+  { id: "3", label: "3 weeks" },
+  { id: "4", label: "4 weeks" },
+] as const
 
 export interface ActionModalLearner {
   _id: string
@@ -74,6 +82,7 @@ export function ActionModal({
   const [selectedModule, setSelectedModule] = useState(defaultModuleId ?? "")
   const [actionType, setActionType] = useState(variant)
   const [bookingLink, setBookingLink] = useState("")
+  const [spacedQuizFrequencyWeeks, setSpacedQuizFrequencyWeeks] = useState("1")
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [sent, setSent] = useState(false)
 
@@ -112,6 +121,7 @@ export function ActionModal({
       setSelectedModule(defaultModuleId ?? "")
       setActionType(variant)
       setBookingLink("")
+      setSpacedQuizFrequencyWeeks("1")
       setCheckedIds(new Set())
       setSent(false)
     }
@@ -134,7 +144,21 @@ export function ActionModal({
             </button>
           </div>
 
-          {variant === "office_hours" ? (
+          {variant === "spaced_quiz" ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-medium text-black">Send spaced quizzes</span>
+              <Select value={spacedQuizFrequencyWeeks} onValueChange={setSpacedQuizFrequencyWeeks}>
+                <SelectTrigger className="h-auto gap-2 rounded-[10px] border-[1.5px] border-[#eee] bg-white px-4 py-2.5 text-xs font-medium text-black shadow-none w-[120px]">
+                  <SelectValue placeholder="How often" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SPACED_QUIZ_FREQUENCIES.map((opt) => (
+                    <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : variant === "office_hours" ? (
             <div className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
               <input
                 type="text"

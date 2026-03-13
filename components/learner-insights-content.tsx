@@ -401,39 +401,50 @@ function LearnerInsightsContentInner({
               <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
                 Recommended Actions To Take
               </h2>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-4">
                 <button
                   type="button"
                   onClick={() => setActiveModal("review_quiz")}
-                  className="relative flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[14px] font-medium text-black">Retrieval Practice</span>
-                    <ExternalLink className="h-4 w-4 text-[#5b5b5b]" />
+                    <span className="text-[12px] font-medium text-black">Retrieval Practice</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                   </div>
-                  <span className="text-[18px] font-semibold text-[#7f23ff]">Assign review quiz</span>
+                  <span className="text-[15px] font-semibold text-[#7f23ff]">Assign review quiz</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveModal("concept_walkthrough")}
-                  className="relative flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[14px] font-medium text-black">Retention</span>
-                    <ExternalLink className="h-4 w-4 text-[#5b5b5b]" />
+                    <span className="text-[12px] font-medium text-black">Retention</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                   </div>
-                  <span className="text-[18px] font-semibold text-[#7f23ff]">Send concept walkthrough</span>
+                  <span className="text-[15px] font-semibold text-[#7f23ff]">Send concept walkthrough</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveModal("office_hours")}
-                  className="relative flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[14px] font-medium text-black">Human-in-the-Loop</span>
-                    <ExternalLink className="h-4 w-4 text-[#5b5b5b]" />
+                    <span className="text-[12px] font-medium text-black">Human-in-the-Loop</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                   </div>
-                  <span className="text-[18px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                  <span className="text-[15px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal("spaced_quiz")}
+                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-medium text-black">Spaced practice</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
+                  </div>
+                  <span className="text-[15px] font-semibold text-[#7f23ff]">Send spaced quizzes</span>
                 </button>
               </div>
             </section>
