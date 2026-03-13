@@ -61,7 +61,7 @@ export function MainContent() {
       <div className="relative overflow-hidden px-8 pb-6 pt-10">
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#eaf2ff] via-[#f5f9ff] to-transparent" />
         <div className="relative mx-auto max-w-4xl">
-          <h1 className="text-3xl font-bold text-foreground">Hi Stephanie</h1>
+          <h1 className="text-3xl font-bold text-foreground">Hi Kasey</h1>
         </div>
       </div>
 
@@ -75,9 +75,9 @@ export function MainContent() {
               className="flex gap-4 overflow-x-auto overflow-y-hidden pb-2 scroll-smooth scrollbar-hide"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {/* AI Fundamentals — matches database course title */}
+              {/* AI Fundamentals — product course */}
               <div className="flex min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card sm:min-w-[360px]">
-                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-500 to-purple-600 p-4">
+                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-[#b8d1ff] via-[#79a8ff] to-[#4a8fff] p-4">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
@@ -102,9 +102,9 @@ export function MainContent() {
                 </div>
               </div>
 
-              {/* AI for Sales & Business Strategy — from database */}
+              {/* AI for Sales & Business Strategy — product course */}
               <div className="flex min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card sm:min-w-[360px]">
-                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-400 to-purple-500 p-4">
+                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-[#79a8ff] via-[#4a8fff] to-[#2f76ff] p-4">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
@@ -129,15 +129,32 @@ export function MainContent() {
                 </div>
               </div>
 
-              {/* Unify Taxes — from database (peek card) */}
+              {/* AI Workflow Automation Bootcamp — product course */}
               <div className="flex min-w-[300px] flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card sm:min-w-[360px]">
-                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-purple-300 to-violet-400 p-4 opacity-80">
+                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-[#4a8fff] to-[#025dfe] p-4">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
                   <span className="text-base font-semibold text-white">
-                    Unify Taxes
+                    AI Workflow Automation Bootcamp
                   </span>
+                </div>
+                <div className="flex h-28 w-56 flex-col justify-between p-4">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                    Course
+                  </span>
+                  <div>
+                    <span className="text-sm font-semibold text-foreground">AI Workflow Automation Bootcamp</span>
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                      <span className="text-xs text-muted-foreground">0%</span>
+                      <div className="h-1.5 w-24 rounded-full bg-secondary">
+                        <div
+                          className="h-1.5 rounded-full bg-primary"
+                          style={{ width: "0%" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
