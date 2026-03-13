@@ -15,31 +15,8 @@ import {
 } from "@/components/ui/select"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
-import { buildCohortDiagnosisHref } from "@/lib/cohort-diagnosis"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
-
-/** Attention items for the For You dashboard (design: Figma 309-4386). Can be wired to Convex later. */
-const ATTENTION_ITEMS = [
-  {
-    id: "mastery",
-    message: "may need more attention, average mastery score",
-    value: "51%",
-    segment: "At Risk" as const,
-  },
-  {
-    id: "video-drop",
-    message: "have high video drop rate of",
-    value: "50%",
-    segment: "At Risk" as const,
-  },
-  {
-    id: "assessment",
-    message: "high assessment incomplete rate of",
-    value: "33%",
-    segment: "At Risk" as const,
-  },
-] as const
 
 export function DashboardForYouContent() {
   const convexAvailable = useConvexAvailable()
@@ -126,7 +103,7 @@ export function DashboardForYouContent() {
                   <ShieldAlert className="h-6 w-6" aria-hidden />
                 </div>
                 <p className="text-sm font-medium text-[#d40e2b]">Attention</p>
-                <p className="text-xs font-normal text-muted-foreground">last updated 1:29pm</p>
+                <p className="text-xs font-normal text-muted-foreground">last updated {lastUpdatedLabel}</p>
               </div>
               <button
                 type="button"
@@ -145,32 +122,29 @@ export function DashboardForYouContent() {
             {attentionExpanded && (
               <div className="w-full rounded-[14px] bg-[#fff3f3] p-2.5">
                 <ul className="list-disc space-y-2.5 pl-5">
-                  {ATTENTION_ITEMS.map((item, i) => {
-                    const courseLabel = trend.courses[0]?.title ?? "AI Fundamentals"
-                    const courseId = trend.courses[0]?.courseId ?? "course_ai_fundamentals"
-                    const moduleNum = 5 - i
-                    const insightsHref = buildCohortDiagnosisHref({
-                      courseId,
-                      segment: item.segment,
-                    })
-                    return (
+                  {(worstModuleInsights ?? []).length === 0 ? (
+                    <li className="text-sm font-medium text-muted-foreground">
+                      No module insights available yet.
+                    </li>
+                  ) : (
+                    (worstModuleInsights ?? []).map((row) => (
                       <li
-                        key={item.id}
+                        key={`${row.courseId}:${row.moduleId}`}
                         className="flex items-start justify-between gap-4 text-sm"
                       >
                         <span className="flex-1 font-medium text-foreground">
-                          {`${courseLabel} / Module ${moduleNum} ${item.message} `}
-                          <span className="font-bold">{item.value}</span>
+                          {row.courseTitle} / {row.moduleLabel} may need more attention, average mastery score{" "}
+                          <span className="font-bold">{Math.round(row.averageScore)}%</span>
                         </span>
                         <Link
-                          href={insightsHref}
+                          href={`/dashboard/module-insight?courseId=${encodeURIComponent(row.courseId)}&moduleId=${encodeURIComponent(row.moduleId)}`}
                           className="shrink-0 text-xs font-normal text-[#7f23ff] underline"
                         >
                           View Insights
                         </Link>
                       </li>
-                    )
-                  })}
+                    ))
+                  )}
                 </ul>
               </div>
             )}
@@ -251,45 +225,6 @@ export function DashboardForYouContent() {
             </div>
           </section>
         </div>
-
-        <section className="rounded-[14px] border-2 border-[#d40e2b] bg-white p-4">
-          <div className="rounded-[10px] bg-[#f2f2f2] p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ShieldAlert className="h-5 w-5 text-[#d40e2b]" aria-hidden />
-                <span className="text-sm font-medium text-[#d40e2b]">Attention</span>
-                <span className="text-xs text-black">last updated {lastUpdatedLabel}</span>
-              </div>
-              <ChevronUp className="h-5 w-5 text-black" aria-hidden />
-            </div>
-
-            <div className="rounded-[14px] bg-[#fff3f3] p-3">
-              <ul className="space-y-2">
-                {(worstModuleInsights ?? []).map((row) => (
-                  <li
-                    key={`${row.courseId}:${row.moduleId}`}
-                    className="flex items-start justify-between gap-3 text-sm text-black"
-                  >
-                    <span className="pl-1 leading-[1.4]">
-                      <span className="mr-2 align-middle text-black">•</span>
-                      {row.courseTitle}/ {row.moduleLabel} may need more attention, average mastery score{" "}
-                      <span className="font-bold">{Math.round(row.averageScore)}%</span>
-                    </span>
-                    <Link
-                      href={`/dashboard/module-insight?courseId=${encodeURIComponent(row.courseId)}&moduleId=${encodeURIComponent(row.moduleId)}`}
-                      className="shrink-0 text-xs text-[#7f23ff] underline hover:no-underline"
-                    >
-                      View Insights
-                    </Link>
-                  </li>
-                ))}
-                {worstModuleInsights && worstModuleInsights.length === 0 ? (
-                  <li className="text-sm text-[#5b5b5b]">No module insights available yet.</li>
-                ) : null}
-              </ul>
-            </div>
-          </div>
-        </section>
 
         <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
           Course Performance Insights
