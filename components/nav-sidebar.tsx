@@ -49,8 +49,9 @@ const helpfulLinks = [
 ]
 
 const learningCourses = [
-  { label: "AI Fundamentals", draft: true, color: "bg-purple-300" },
-  { label: "AI for Sales & Business Strategy", draft: false, color: "bg-violet-500" },
+  { label: "AI Fundamentals", draft: true, color: "bg-[#b8d1ff]" },
+  { label: "AI for Sales & Business Strategy", draft: false, color: "bg-[#79a8ff]" },
+  { label: "AI Workflow Automation Bootcamp", draft: false, color: "bg-[#4a8fff]" },
 ]
 
 const adminNav = [

@@ -33,10 +33,10 @@ export function LearningContent() {
           </span>
         </div>
 
-        {/* Course cards — names from database: AI Fundamentals, AI for Sales & Business Strategy, AI Workflow Automation Bootcamp, Unify Taxes */}
+        {/* Course cards: AI Fundamentals, AI for Sales & Business Strategy, AI Workflow Automation Bootcamp */}
         <div className="flex flex-wrap gap-4">
           <div className="w-72 rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-            <div className="relative h-36 bg-gradient-to-br from-violet-300 via-purple-300 to-violet-400 p-4 flex flex-col justify-end">
+            <div className="relative h-36 bg-gradient-to-br from-[#b8d1ff] via-[#79a8ff] to-[#4a8fff] p-4 flex flex-col justify-end">
               <button className="absolute top-3 right-3 text-card/70 hover:text-card">
                 <MoreVertical className="h-5 w-5" />
               </button>
@@ -62,7 +62,7 @@ export function LearningContent() {
             </div>
           </div>
           <div className="w-72 rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-            <div className="relative h-36 bg-gradient-to-br from-violet-500 to-purple-600 p-4 flex flex-col justify-end">
+            <div className="relative h-36 bg-gradient-to-br from-[#79a8ff] via-[#4a8fff] to-[#2f76ff] p-4 flex flex-col justify-end">
               <button className="absolute top-3 right-3 text-card/70 hover:text-card">
                 <MoreVertical className="h-5 w-5" />
               </button>
@@ -76,6 +76,32 @@ export function LearningContent() {
                 Course
               </span>
               <p className="mt-2 text-sm font-semibold text-foreground">AI for Sales & Business Strategy</p>
+              <div className="mt-4 flex items-center justify-between">
+                <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                  <Check className="h-3.5 w-3.5" />
+                  Registered
+                </span>
+                <button className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="w-72 rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+            <div className="relative h-36 bg-gradient-to-br from-[#4a8fff] to-[#025dfe] p-4 flex flex-col justify-end">
+              <button className="absolute top-3 right-3 text-card/70 hover:text-card">
+                <MoreVertical className="h-5 w-5" />
+              </button>
+              <span className="mb-1 inline-block w-fit rounded bg-card/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-card">
+                COURSE
+              </span>
+              <span className="text-xl font-bold text-card">AI Workflow Automation Bootcamp</span>
+            </div>
+            <div className="p-4">
+              <span className="inline-block rounded border border-border px-2 py-0.5 text-xs font-medium text-foreground">
+                Course
+              </span>
+              <p className="mt-2 text-sm font-semibold text-foreground">AI Workflow Automation Bootcamp</p>
               <div className="mt-4 flex items-center justify-between">
                 <span className="flex items-center gap-1 text-xs font-medium text-green-600">
                   <Check className="h-3.5 w-3.5" />
