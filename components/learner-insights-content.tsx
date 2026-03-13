@@ -380,7 +380,7 @@ function LearnerInsightsContentInner({
         ) : (
           <>
             {/* Main title: Individual Performance Insights */}
-            <h1 className="text-center text-xl font-bold text-foreground">
+            <h1 className="text-[30px] font-bold leading-normal tracking-[0.6px] text-foreground">
               Individual Performance Insights
             </h1>
 
