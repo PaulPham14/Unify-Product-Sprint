@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
+import { buildDashboardHref } from "@/lib/dashboard-route-state"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
 
@@ -84,15 +85,13 @@ export function DashboardForYouContent() {
   return (
     <div className="flex-1 overflow-y-auto bg-white p-6">
       <div className="mx-auto max-w-6xl space-y-8">
-        {/* Same top section as Home -> For You */}
-        <div className="px-8 pb-6 pt-10">
-          <div className="mx-auto max-w-4xl">
+        {/* Greeting + Attention with tighter spacing */}
+        <div className="flex flex-col gap-4 px-8 pt-10">
+          <div className="mx-auto max-w-4xl w-full">
             <h1 className="text-3xl font-bold text-foreground">Hi Kasey</h1>
           </div>
-        </div>
-
-        {/* Attention banner (Figma 309-4386) */}
-        <div className="mx-auto max-w-4xl px-8">
+          {/* Attention banner (Figma 309-4386) */}
+          <div className="mx-auto max-w-4xl w-full">
           <section
             className="flex flex-col gap-4 rounded-[14px] border-2 border-[#d40e2b] bg-white p-4"
             data-node-id="309:4386"
@@ -149,6 +148,7 @@ export function DashboardForYouContent() {
               </div>
             )}
           </section>
+          </div>
         </div>
 
         <div className="mx-auto max-w-4xl px-8">
@@ -175,10 +175,15 @@ export function DashboardForYouContent() {
                         : index % 3 === 1
                           ? "from-[#79a8ff] to-[#2f76ff]"
                           : "from-[#b8d1ff] to-[#6ea3ff]"
+                    const coursesHref = buildDashboardHref({
+                      page: "dashboard",
+                      dashboardSubPage: "courses",
+                    })
                     return (
-                      <div
+                      <Link
                         key={course.courseId}
-                        className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card"
+                        href={coursesHref}
+                        className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
                       >
                         <div
                           className={`flex h-28 w-44 flex-col justify-end bg-gradient-to-br p-4 ${gradientClass}`}
@@ -210,7 +215,7 @@ export function DashboardForYouContent() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     )
                   })
                 )}
@@ -227,12 +232,11 @@ export function DashboardForYouContent() {
         </div>
 
         <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
-          Course Performance Insights
+          Course Progress
         </h2>
 
         <section className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <span className="text-[14px] font-medium text-black">Course Progress</span>
+          <div className="mb-4 flex items-center justify-end">
             <Select value={month} onValueChange={setMonth}>
               <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
                 <SelectValue />

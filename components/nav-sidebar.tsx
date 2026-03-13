@@ -49,7 +49,7 @@ const helpfulLinks = [
 ]
 
 const learningCourses = [
-  { label: "AI Fundamentals", draft: true, color: "bg-[#b8d1ff]" },
+  { label: "AI Fundamentals", draft: false, color: "bg-[#b8d1ff]" },
   { label: "AI for Sales & Business Strategy", draft: false, color: "bg-[#79a8ff]" },
   { label: "AI Workflow Automation Bootcamp", draft: false, color: "bg-[#4a8fff]" },
 ]
@@ -222,11 +222,11 @@ function LearningSidebar() {
           {learningCourses.map((course) => (
             <button
               key={course.label}
-              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-secondary transition-colors"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-secondary transition-colors text-left"
             >
-              <div className="flex items-center gap-2.5">
-                <span className={`h-4 w-4 rounded ${course.color}`} />
-                <span>{course.label}</span>
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                <span className={`h-4 w-4 shrink-0 rounded ${course.color}`} />
+                <span className="min-w-0 break-words text-left">{course.label}</span>
               </div>
               {course.draft && (
                 <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
