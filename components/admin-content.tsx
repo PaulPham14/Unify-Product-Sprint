@@ -97,7 +97,7 @@ export function AdminContent() {
 
         {/* Welcome */}
         <h1 className="text-2xl font-bold text-foreground mb-6">
-          Welcome, Stephanie
+          Welcome, Kasey
         </h1>
 
         {/* Stats cards */}
