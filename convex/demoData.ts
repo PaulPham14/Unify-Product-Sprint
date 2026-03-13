@@ -1240,6 +1240,7 @@ function generateLearnerSeed(
       const completionGate = seededNumber(`${learnerProfile.key}:${conceptDef.conceptId}:completion`);
       const quizAssessmentId = buildAssessmentId(course.courseId, moduleDef.order, "quiz");
       const assignmentAssessmentId = buildAssessmentId(course.courseId, moduleDef.order, "assignment");
+      const retentionAssessmentId = buildAssessmentId(course.courseId, moduleDef.order, "retention");
 
       const quizRow: SeededTaskResult = {
         assessmentId: quizAssessmentId,
@@ -1292,6 +1293,7 @@ function generateLearnerSeed(
         cohortId: DEMO_COHORT_ID,
       };
       const retentionRow: SeededTaskResult = {
+        assessmentId: retentionAssessmentId,
         attempts: Math.max(1, quizAttempts - 1),
         confidenceScore: clamp(confidenceScore - 4, 20, 95),
         conceptIds: [conceptDef.conceptId],
@@ -1366,9 +1368,13 @@ function buildCourseAssessments(
     const assignmentScores = moduleResults
       .filter((result) => result.taskType === "assignment")
       .map((result) => (result.maxScore > 0 ? (result.score / result.maxScore) * 100 : 0));
+    const retentionScores = moduleResults
+      .filter((result) => result.taskType === "quiz" && result.retentionDelayDays != null)
+      .map((result) => (result.maxScore > 0 ? (result.score / result.maxScore) * 100 : 0));
     const isFinalModule = moduleDef.order === course.modules.length;
     const quizDueDate = millisFromSec(course.courseStartSec + moduleDef.order * 12 * 86400);
     const assignmentDueDate = millisFromSec(course.courseStartSec + moduleDef.order * 12 * 86400 + 2 * 86400);
+    const retentionDueDate = millisFromSec(course.courseStartSec + moduleDef.order * 12 * 86400 + 16 * 86400);
 
     assessments.push({
       courseId: course.courseId,
@@ -1395,6 +1401,20 @@ function buildCourseAssessments(
       status: moduleDef.order >= course.modules.length - 1 ? "in_progress" : "done",
       averageScore:
         moduleDef.order >= course.modules.length - 1 ? undefined : round2(average(assignmentScores)),
+      order: order++,
+    });
+    assessments.push({
+      courseId: course.courseId,
+      assessmentId: buildAssessmentId(course.courseId, moduleDef.order, "retention"),
+      assessmentType: `Retention Check ${moduleDef.order}`,
+      assessmentKind: "retention",
+      assessmentName: `Retention Check ${moduleDef.order}`,
+      moduleLesson: `${moduleDef.title}/ Module ${moduleDef.order}`,
+      moduleId: moduleDef.moduleId,
+      dueDate: retentionDueDate,
+      status: moduleDef.order >= course.modules.length ? "in_progress" : "done",
+      averageScore:
+        moduleDef.order >= course.modules.length ? undefined : round2(average(retentionScores)),
       order: order++,
     });
   }
@@ -1465,7 +1485,11 @@ function retentionTaskId(conceptId: string) {
   return `${conceptId}_retention`;
 }
 
-function buildAssessmentId(courseId: string, moduleOrder: number, kind: "quiz" | "assignment") {
+function buildAssessmentId(
+  courseId: string,
+  moduleOrder: number,
+  kind: "quiz" | "assignment" | "retention"
+) {
   return `assessment_${courseId}_m${moduleOrder}_${kind}`;
 }
 

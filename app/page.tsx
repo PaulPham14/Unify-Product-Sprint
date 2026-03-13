@@ -104,6 +104,7 @@ function RootPageContent() {
             assessmentCourseId={routeState.assessmentCourseId}
             assessmentId={routeState.assessmentId}
             assessmentOrder={routeState.assessmentOrder}
+            assessmentType={routeState.assessmentType}
           />
         )
       default:

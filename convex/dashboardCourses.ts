@@ -676,7 +676,12 @@ export const listAssessmentInsights = query({
             : null) ??
           sortedModules.find((m) => (m.order ?? 0) === moduleNumFromLabel) ??
           null;
-        const expectedSuffix = taskTypeLabel === "assignment" ? "_assignment" : "_quiz";
+        const expectedSuffix =
+          taskTypeLabel === "assignment"
+            ? "_assignment"
+            : taskTypeLabel === "retention"
+              ? "_retention"
+              : "_quiz";
         const matchedTaskResults = taskResults.filter((result) => {
           // Strict linkage: only grades tied to this exact assessment count.
           if (!assessment.assessmentId) return false;
@@ -750,21 +755,48 @@ export const getAssessmentDetail = query({
     courseId: v.string(),
     assessmentId: v.optional(v.string()),
     order: v.optional(v.float64()),
+    assessmentType: v.optional(v.string()),
   },
-  handler: async (ctx, { courseId, assessmentId, order }) => {
-    let assessmentDoc = null;
-    if (assessmentId) {
+  handler: async (ctx, args) => {
+    try {
+      return await getAssessmentDetailImpl(ctx, args);
+    } catch (err) {
+      console.error("getAssessmentDetail error", err);
+      return null;
+    }
+  },
+});
+
+async function getAssessmentDetailImpl(
+  ctx: QueryCtx,
+  args: { courseId: string; assessmentId?: string; order?: number; assessmentType?: string },
+) {
+  const { courseId, assessmentId, order, assessmentType } = args;
+  let assessmentDoc = null;
+  if (assessmentId) {
       assessmentDoc = await ctx.db
         .query("course_assessments")
         .withIndex("by_assessmentId", (q) => q.eq("assessmentId", assessmentId))
         .unique();
     }
-    if (!assessmentDoc && order != null) {
+    if (!assessmentDoc && order != null && Number.isFinite(Number(order))) {
+      const orderNum = Number(order);
       const allForCourse = await ctx.db
         .query("course_assessments")
         .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
         .collect();
-      assessmentDoc = allForCourse.find((a) => a.order === order) ?? null;
+      assessmentDoc = allForCourse.find((a) => (a.order ?? 0) === orderNum) ?? null;
+    }
+    if (!assessmentDoc && assessmentType?.trim()) {
+      const targetType = assessmentType.trim().toLowerCase();
+      const allForCourse = await ctx.db
+        .query("course_assessments")
+        .withIndex("by_courseId", (q) => q.eq("courseId", courseId))
+        .collect();
+      assessmentDoc =
+        allForCourse.find(
+          (a) => (a.assessmentType ?? "").toLowerCase() === targetType,
+        ) ?? null;
     }
     if (!assessmentDoc) return null;
 
@@ -799,25 +831,33 @@ export const getAssessmentDetail = query({
         .map((u) => [u.userId as string, u]),
     );
 
+    const assessmentTypeStr = assessmentDoc.assessmentType ?? "";
     const taskTypeLabel =
       assessmentDoc.assessmentKind ??
-      (assessmentDoc.assessmentType.toLowerCase().includes("assignment") ? "assignment" : "quiz");
+      (assessmentTypeStr.toLowerCase().includes("assignment")
+        ? "assignment"
+        : assessmentTypeStr.toLowerCase().includes("retention")
+          ? "retention"
+          : "quiz");
+    const orderFromType = Number((assessmentTypeStr.match(/(\d+)/)?.[1] ?? "0").trim());
     const moduleDoc =
       assessmentDoc.moduleId
         ? sortedModules.find((m) => m.moduleId === assessmentDoc.moduleId)
         : null ??
-      sortedModules.find(
-        (m) =>
-          (m.order ?? 0) ===
-          Number((assessmentDoc.assessmentType.match(/(\d+)/)?.[1] ?? "0").trim(),
-      ) ??
+      sortedModules.find((m) => (m.order ?? 0) === orderFromType) ??
       null;
-    const expectedSuffix = taskTypeLabel === "assignment" ? "_assignment" : "_quiz";
+    const expectedSuffix =
+      taskTypeLabel === "assignment"
+        ? "_assignment"
+        : taskTypeLabel === "retention"
+          ? "_retention"
+          : "_quiz";
     const matchedTaskResults = taskResults.filter((result) => {
       if (resolvedAssessmentId != null && result.assessmentId !== resolvedAssessmentId) return false;
       if (moduleDoc && result.moduleId !== moduleDoc.moduleId) return false;
-      if (!result.taskId.endsWith(expectedSuffix)) return false;
-      if (taskTypeLabel === "quiz" && result.taskId.endsWith("_retention")) return false;
+      const taskId = result.taskId ?? "";
+      if (!taskId.endsWith(expectedSuffix)) return false;
+      if (taskTypeLabel === "quiz" && taskId.endsWith("_retention")) return false;
       return true;
     });
 
@@ -833,9 +873,14 @@ export const getAssessmentDetail = query({
                 ),
               )
             : null;
-        const latestResult = learnerRows.length > 0
-          ? learnerRows.reduce((a, b) => (a.completedAt > b.completedAt ? a : b))
-          : null;
+        const latestResult =
+          learnerRows.length > 0
+            ? learnerRows.reduce((a, b) => {
+                const aAt = a.completedAt ?? 0;
+                const bAt = b.completedAt ?? 0;
+                return aAt > bAt ? a : b;
+              })
+            : null;
         return {
           learnerId: learner?._id ?? enrollment.userId,
           learnerName: learner?.name ?? enrollment.userId,
@@ -845,7 +890,7 @@ export const getAssessmentDetail = query({
           attempts: latestResult?.attempts ?? null,
         };
       })
-      .sort((a, b) => a.learnerName.localeCompare(b.learnerName));
+      .sort((a, b) => String(a.learnerName ?? "").localeCompare(String(b.learnerName ?? "")));
 
     const scoresWithValues = learnerGrades
       .map((g) => g.rawScore)
@@ -855,7 +900,7 @@ export const getAssessmentDetail = query({
     const hasAnySubmissions = matchedTaskResults.length > 0;
     const displayStatus = hasAnySubmissions ? assessmentDoc.status : "not_started";
     const showScore = hasAnySubmissions && classAverage != null;
-    const moduleDisplayOrder = moduleDoc?.order ?? Number((assessmentDoc.assessmentType.match(/(\d+)/)?.[1] ?? "0").trim();
+    const moduleDisplayOrder = moduleDoc?.order ?? orderFromType;
 
     return {
       assessmentId: assessmentDoc.assessmentId ?? null,
@@ -873,8 +918,7 @@ export const getAssessmentDetail = query({
       assessmentKind: assessmentDoc.assessmentKind ?? undefined,
       learnerGrades,
     };
-  },
-});
+}
 
 export const listModuleInsights = query({
   args: { courseId: v.string() },

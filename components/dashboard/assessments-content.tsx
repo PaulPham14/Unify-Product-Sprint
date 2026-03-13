@@ -7,6 +7,7 @@ import { useAction, useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import { buildDashboardHref } from "@/lib/dashboard-route-state"
+import { X } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -82,12 +83,14 @@ type AssessmentDetailProps = {
   assessmentCourseId?: string | null
   assessmentId?: string | null
   assessmentOrder?: string | null
+  assessmentType?: string | null
 }
 
 export function DashboardAssessmentsContent({
   assessmentCourseId,
   assessmentId,
   assessmentOrder,
+  assessmentType: assessmentTypeParam,
 }: AssessmentDetailProps = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -100,8 +103,12 @@ export function DashboardAssessmentsContent({
   const [loadTimeout, setLoadTimeout] = useState(false)
 
   const assessmentCourseIdFromUrl = searchParams.get("assessmentCourseId") ?? assessmentCourseId ?? null
-  const assessmentIdFromUrl = searchParams.get("assessmentId") ?? assessmentId ?? null
-  const assessmentOrderFromUrl = searchParams.get("assessmentOrder") ?? assessmentOrder ?? null
+  const assessmentIdRaw = searchParams.get("assessmentId") ?? assessmentId ?? null
+  const assessmentOrderRaw = searchParams.get("assessmentOrder") ?? assessmentOrder ?? null
+  const assessmentTypeRaw = searchParams.get("assessmentType") ?? assessmentTypeParam ?? null
+  const assessmentIdFromUrl = assessmentIdRaw === "undefined" ? null : assessmentIdRaw
+  const assessmentOrderFromUrl = assessmentOrderRaw === "undefined" ? null : assessmentOrderRaw
+  const assessmentTypeFromUrl = assessmentTypeRaw === "undefined" ? null : assessmentTypeRaw
 
   const [seeding, setSeeding] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -130,7 +137,11 @@ export function DashboardAssessmentsContent({
 
   const showDetail =
     Boolean(assessmentCourseIdFromUrl) &&
-    (Boolean(assessmentIdFromUrl?.trim()) || (assessmentOrderFromUrl != null && assessmentOrderFromUrl !== ""))
+    (
+      Boolean(assessmentIdFromUrl?.trim()) ||
+      (assessmentOrderFromUrl != null && assessmentOrderFromUrl !== "") ||
+      Boolean(assessmentTypeFromUrl?.trim())
+    )
   const detailOrder =
     assessmentOrderFromUrl != null && assessmentOrderFromUrl !== ""
       ? Number(assessmentOrderFromUrl)
@@ -139,7 +150,7 @@ export function DashboardAssessmentsContent({
   const detailQueryArg =
     showDetail &&
     assessmentCourseIdFromUrl &&
-    (assessmentIdFromUrl?.trim() || detailOrderValid)
+    (assessmentIdFromUrl?.trim() || detailOrderValid || assessmentTypeFromUrl?.trim())
   const detail = useQuery(
     api.dashboardCourses.getAssessmentDetail,
     detailQueryArg
@@ -147,6 +158,7 @@ export function DashboardAssessmentsContent({
           courseId: assessmentCourseIdFromUrl!,
           assessmentId: assessmentIdFromUrl?.trim() || undefined,
           order: assessmentIdFromUrl?.trim() ? undefined : (detailOrderValid ? detailOrder : undefined),
+          assessmentType: assessmentTypeFromUrl?.trim() || undefined,
         }
       : "skip",
   )
@@ -282,139 +294,15 @@ export function DashboardAssessmentsContent({
 
   const backToListHref = buildDashboardHref({ page: "dashboard", dashboardSubPage: "assessments" })
 
-  if (detailQueryArg && assessmentCourseIdFromUrl) {
-    if (detail === undefined) {
-      return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
-          <p className="text-sm text-[#5b5b5b]">Loading…</p>
-          {loadTimeout && (
-            <>
-              <p className="text-xs text-[#5b5b5b]">Taking longer than expected.</p>
-              <Link
-                href={backToListHref}
-                className="text-sm font-medium text-[#9727fc] underline hover:no-underline"
-              >
-                Back to Assessments
-              </Link>
-            </>
-          )}
-        </div>
-      )
-    }
-    if (detail === null) {
-      return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
-          <p className="text-sm text-[#5b5b5b]">Assessment not found.</p>
-          <Link href={backToListHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
-            Back to Assessments
-          </Link>
-        </div>
-      )
-    }
-    const dueDate = new Date(detail.dueDate).toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    })
-    return (
-      <div className="flex-1 overflow-y-auto bg-white">
-        <div className="mx-auto max-w-4xl px-6 py-8">
-          <Link
-            href={backToListHref}
-            className="mb-6 inline-flex items-center gap-1 text-xs font-medium text-[#5b5b5b] hover:text-black"
-          >
-            <span className="text-[18px] leading-none">←</span>
-            Back to Assessments
-          </Link>
-          <header className="mb-8 flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[24px] font-bold tracking-tight text-black">{detail.assessmentName}</h1>
-              <StatusPill status={detail.status} />
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-[#5b5b5b]">
-              <span>{detail.courseModuleLabel}</span>
-              <span>Due {dueDate}</span>
-              <span className="font-medium text-black">Class average: {detail.averageScoreLabel}</span>
-            </div>
-          </header>
-          {detail.instructions ? (
-            <section className="mb-8 rounded-[14px] border-2 border-[#eee] bg-[#f9f9f9] p-5">
-              <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#5b5b5b]">Instructions</h2>
-              <p className="whitespace-pre-wrap text-sm text-black">{detail.instructions}</p>
-            </section>
-          ) : null}
-          {detail.rubric && detail.rubric.length > 0 ? (
-            <section className="mb-8 rounded-[14px] border-2 border-[#eee] bg-white p-5">
-              <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#5b5b5b]">Rubric</h2>
-              <ul className="space-y-2">
-                {detail.rubric.map((item, i) => (
-                  <li key={i} className="flex flex-col gap-0.5 text-sm">
-                    <span className="font-medium text-black">
-                      {item.criterion}
-                      <span className="ml-2 text-[#5b5b5b]">({item.weightPct}%)</span>
-                    </span>
-                    {item.description ? (
-                      <span className="text-xs text-[#5b5b5b]">{item.description}</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          <section className="rounded-[14px] border-2 border-[#eee] bg-white">
-            <div className="border-b border-[#eee] p-4">
-              <h2 className="text-sm font-bold text-black">Student grades</h2>
-              <p className="mt-0.5 text-xs text-[#5b5b5b]">
-                {detail.learnerGrades.length} enrolled learner{detail.learnerGrades.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-[400px] w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-[#eee] bg-[#5b5b5b] text-xs font-bold text-white">
-                    <th className="px-4 py-3">Student</th>
-                    <th className="px-4 py-3 text-center">Grade</th>
-                    <th className="px-4 py-3 text-center">Submitted</th>
-                    <th className="px-4 py-3 text-center">Attempts</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.learnerGrades.map((row) => (
-                    <tr
-                      key={String(row.learnerId)}
-                      className="border-b border-[#eee] last:border-b-0 hover:bg-[#f9f9f9]"
-                    >
-                      <td className="px-4 py-3 font-medium text-black">{row.learnerName}</td>
-                      <td className="px-4 py-3 text-center text-black">{row.scoreLabel ?? "—"}</td>
-                      <td className="px-4 py-3 text-center text-[#5b5b5b]">
-                        {row.submittedAt != null
-                          ? new Date(
-                              row.submittedAt < 1e12 ? row.submittedAt * 1000 : row.submittedAt,
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-center text-[#5b5b5b]">
-                        {row.attempts != null ? String(row.attempts) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-      </div>
-    )
-  }
+  const closeDetail = () => router.push(backToListHref)
+
+  const showDetailModal = Boolean(detailQueryArg && assessmentCourseIdFromUrl)
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#fafafa] p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <h1 className="text-[40px] font-bold tracking-[0.6px] text-black">
+    <>
+      <div className="flex-1 overflow-y-auto bg-[#fafafa] p-6">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <h1 className="text-[40px] font-bold tracking-[0.6px] text-black">
           {showCreateForm ? "New Assessment" : "Assessments"}
         </h1>
 
@@ -639,9 +527,6 @@ export function DashboardAssessmentsContent({
               >
                 Cancel
               </button>
-              <button type="button" className="text-xs font-medium text-[#7f23ff]">
-                Save
-              </button>
               <button
                 type="button"
                 onClick={handleCreateAssessment}
@@ -728,15 +613,25 @@ export function DashboardAssessmentsContent({
                     year: "numeric",
                   })
                   const rowCourseId = (row as { courseId?: string }).courseId ?? effectiveCourseId
-                  const detailHref = rowCourseId
-                    ? buildDashboardHref({
-                        page: "dashboard",
-                        dashboardSubPage: "assessments",
-                        assessmentCourseId: rowCourseId,
-                        assessmentId: row.assessmentId ?? undefined,
-                        assessmentOrder: row.assessmentId ? undefined : String(row.order),
-                      })
-                    : null
+                  const hasValidOrder =
+                    typeof row.order === "number" && Number.isFinite(row.order)
+                  const orderParam =
+                    row.assessmentId ? undefined : hasValidOrder ? String(row.order) : undefined
+                  const hasDetailId =
+                    Boolean(row.assessmentId?.trim()) ||
+                    (orderParam != null && orderParam !== "") ||
+                    Boolean(row.assessmentType?.trim())
+                  const detailHref =
+                    rowCourseId && hasDetailId
+                      ? buildDashboardHref({
+                          page: "dashboard",
+                          dashboardSubPage: "assessments",
+                          assessmentCourseId: rowCourseId,
+                          assessmentId: row.assessmentId?.trim() || undefined,
+                          assessmentOrder: orderParam,
+                          assessmentType: row.assessmentType?.trim() || undefined,
+                        })
+                      : null
 
                   const rowContent = (
                     <>
@@ -752,27 +647,20 @@ export function DashboardAssessmentsContent({
                     </>
                   )
 
-                  const rowClassName = `grid grid-cols-5 items-center rounded-[4px] py-[6px] text-center text-xs text-black ${rowBg} ${
+                  const rowClassName = `grid grid-cols-5 items-center rounded-[4px] py-[6px] text-center text-xs text-black no-underline ${rowBg} ${
                     detailHref ? "cursor-pointer transition-colors hover:bg-[#f0f0f0]" : ""
                   }`
 
                   if (detailHref) {
                     return (
-                      <div
+                      <Link
                         key={`${row.assessmentType}-${idx}`}
-                        role="button"
-                        tabIndex={0}
+                        href={detailHref}
                         className={rowClassName}
-                        onClick={() => router.push(detailHref)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault()
-                            router.push(detailHref)
-                          }
-                        }}
+                        scroll={false}
                       >
                         {rowContent}
-                      </div>
+                      </Link>
                     )
                   }
                   return (
@@ -825,5 +713,137 @@ export function DashboardAssessmentsContent({
         )}
       </div>
     </div>
+
+      {showDetailModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="assessment-detail-title"
+          onClick={closeDetail}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[14px] border-2 border-[#eee] bg-white shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {detail === undefined && (
+              <div className="flex flex-col items-center justify-center gap-4 p-12">
+                <p className="text-sm text-[#5b5b5b]">Loading…</p>
+                {loadTimeout && (
+                  <button type="button" onClick={closeDetail} className="text-sm font-medium text-[#9727fc] underline">
+                    Back to Assessments
+                  </button>
+                )}
+              </div>
+            )}
+            {detail === null && (
+              <div className="flex flex-col items-center justify-center gap-4 p-12">
+                <p className="text-sm text-[#5b5b5b]">Assessment not found.</p>
+                <button type="button" onClick={closeDetail} className="text-sm font-medium text-[#9727fc] underline">
+                  Back to Assessments
+                </button>
+              </div>
+            )}
+            {detail != null && detail !== undefined && (
+              <>
+                <div className="flex shrink-0 items-center justify-between border-b border-[#e0e0e0] p-4">
+                  <h2 id="assessment-detail-title" className="text-base font-medium text-black">
+                    {detail.assessmentName}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={closeDetail}
+                    className="rounded p-1 text-[#5b5b5b] hover:bg-[#f0f0f0]"
+                    aria-label="Close"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="flex shrink-0 gap-4 border-b border-[#e0e0e0] p-4">
+                  <div className="flex flex-1 flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4">
+                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">
+                      {detail.learnerGrades.filter((g) => g.submittedAt != null).length}/
+                      {detail.learnerGrades.length}
+                    </p>
+                    <p className="text-sm font-medium text-[#5b5b5b]">Submissions</p>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4">
+                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">
+                      {detail.averageScoreLabel}
+                    </p>
+                    <p className="text-sm font-medium text-[#5b5b5b]">Average Score</p>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4">
+                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">—</p>
+                    <p className="text-sm font-medium text-[#5b5b5b]">Average Time Spent</p>
+                  </div>
+                </div>
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <div className="flex flex-col px-4 pb-4 pt-4">
+                    <div className="flex w-full min-w-[600px] items-center rounded-[4px] bg-[#5b5b5b] py-2">
+                      <div className="flex flex-1 items-center justify-center px-2.5">
+                        <span className="text-xs font-bold leading-normal text-white">Learner</span>
+                      </div>
+                      <div className="flex flex-1 items-center justify-center px-2.5">
+                        <span className="text-xs font-bold leading-normal text-white">Score</span>
+                      </div>
+                      <div className="flex flex-1 items-center justify-center px-2.5">
+                        <span className="text-xs font-bold leading-normal text-white">Time Spent</span>
+                      </div>
+                      <div className="flex flex-1 items-center justify-center px-2.5">
+                        <span className="text-xs font-bold leading-normal text-white">Completed On</span>
+                      </div>
+                      <div className="flex flex-1 items-center justify-center px-2.5">
+                        <span className="text-xs font-bold leading-normal text-white">Release Score</span>
+                      </div>
+                    </div>
+                    {detail.learnerGrades.map((row) => {
+                      const completedOn =
+                        row.submittedAt != null
+                          ? new Date(
+                              row.submittedAt < 1e12 ? row.submittedAt * 1000 : row.submittedAt,
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "—"
+                      return (
+                        <div
+                          key={String(row.learnerId)}
+                          className="flex w-full min-w-[600px] items-center border-b border-[#eee] last:border-b-0"
+                        >
+                          <div className="flex flex-1 items-center px-2.5 py-3">
+                            <span className="text-sm text-black">{row.learnerName}</span>
+                          </div>
+                          <div className="flex flex-1 items-center justify-center px-2.5 py-3">
+                            <span className="text-sm text-black">{row.scoreLabel ?? "—"}</span>
+                          </div>
+                          <div className="flex flex-1 items-center justify-center px-2.5 py-3">
+                            <span className="text-sm text-black">—</span>
+                          </div>
+                          <div className="flex flex-1 items-center justify-center px-2.5 py-3">
+                            <span className="text-sm text-black">{completedOn}</span>
+                          </div>
+                          <div className="flex flex-1 items-center justify-center gap-2 px-2.5 py-3">
+                            <span className="rounded-full bg-[#e1f3de] px-2.5 py-1 text-xs font-medium text-[#259800]">
+                              Yes
+                            </span>
+                            <span className="rounded-full bg-[#ffddd9] px-2.5 py-1 text-xs font-medium text-[#d1001f]">
+                              No
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+    </>
   )
 }
