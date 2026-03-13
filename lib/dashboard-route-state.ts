@@ -98,7 +98,7 @@ export function parseDashboardRouteState(
   const assessmentType = searchParams.get("assessmentType")
 
   return {
-    page: VALID_PAGES.has(page as AppPageId) ? (page as AppPageId) : "home",
+    page: VALID_PAGES.has(page as AppPageId) ? (page as AppPageId) : "dashboard",
     homeSubPage: VALID_HOME_SUBPAGES.has(homeSubPage as AppHomeSubPage)
       ? (homeSubPage as AppHomeSubPage)
       : "for-you",
@@ -106,7 +106,7 @@ export function parseDashboardRouteState(
       dashboardSubPage as AppDashboardSubPage
     )
       ? (dashboardSubPage as AppDashboardSubPage)
-      : "courses",
+      : "for-you",
     learnerId: learnerId || null,
     assessmentCourseId: assessmentCourseId || null,
     assessmentId: assessmentId || null,
