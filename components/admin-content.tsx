@@ -46,7 +46,7 @@ const recentMembers = [
     email: "contact@unifysocial.ca",
     date: "Mar 1, 2026 - 12:50 PM PST",
     avatar: "US",
-    color: "bg-violet-500",
+    color: "bg-[#025dfe]",
   },
   {
     name: "Stephanie Ma",

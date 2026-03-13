@@ -43,7 +43,7 @@ export function TablePagination({
                 <span
                   className={`leading-[1.4] ${
                     pageNumber === currentPage
-                      ? "text-[10px] font-bold text-[#9727fc]"
+                      ? "text-[10px] font-bold text-[#025dfe]"
                       : pageNumber === "..."
                         ? "text-[12.774px] font-medium text-[#5b5b5b]"
                         : "text-[10px] font-medium text-[#5b5b5b]"

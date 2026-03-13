@@ -7,14 +7,14 @@ export function MemberEventsContent() {
     <div className="flex-1 overflow-y-auto bg-background">
       <div className="flex flex-col items-center justify-center px-8 py-20">
         {/* Illustration placeholder */}
-        <div className="mb-6 flex h-48 w-72 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 via-purple-50 to-white border border-border overflow-hidden">
+        <div className="mb-6 flex h-48 w-72 items-center justify-center rounded-xl bg-gradient-to-br from-[#eaf2ff] via-[#f5f9ff] to-white border border-border overflow-hidden">
           <div className="flex flex-col items-center gap-2">
             <div className="flex h-16 w-24 items-center justify-center rounded-lg bg-card shadow-md border border-border">
               <CalendarDays className="h-8 w-8 text-muted-foreground" />
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-2 w-16 rounded-full bg-purple-200" />
-              <div className="h-2 w-10 rounded-full bg-purple-100" />
+              <div className="h-2 w-16 rounded-full bg-[#b8d1ff]" />
+              <div className="h-2 w-10 rounded-full bg-[#eaf2ff]" />
             </div>
           </div>
         </div>

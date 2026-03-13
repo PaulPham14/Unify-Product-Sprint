@@ -2,7 +2,7 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 
 const DEFAULT_COHORT_ID = "cohort_ai_001";
-const SERIES_COLORS = ["#9727fc", "#3cc3df", "#ff8a9e", "#ffae4c", "#22c55e", "#6366f1"];
+const SERIES_COLORS = ["#025dfe", "#3cc3df", "#ff8a9e", "#ffae4c", "#22c55e", "#6366f1"];
 
 export const getCourseProgressTrend = query({
   args: { cohortId: v.optional(v.string()) },
@@ -93,4 +93,3 @@ export const getCourseProgressTrend = query({
     };
   },
 });
-

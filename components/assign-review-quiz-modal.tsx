@@ -229,7 +229,7 @@ export function ActionModal({
                 type="checkbox"
                 checked={allChecked}
                 onChange={toggleAll}
-                className="h-3 w-3 rounded-sm border border-white accent-[#9727fc]"
+                className="h-3 w-3 rounded-sm border border-white accent-[#025dfe]"
               />
               <span className="text-xs font-bold text-white">Learner</span>
             </div>
@@ -252,7 +252,7 @@ export function ActionModal({
                       type="checkbox"
                       checked={checkedIds.has(l._id)}
                       onChange={() => toggleLearner(l._id)}
-                      className="h-3 w-3 rounded-sm border border-black accent-[#9727fc]"
+                      className="h-3 w-3 rounded-sm border border-black accent-[#025dfe]"
                     />
                     <span className="text-sm text-black">{l.name}</span>
                   </div>
@@ -276,7 +276,7 @@ export function ActionModal({
             type="button"
             onClick={handleSend}
             disabled={checkedIds.size === 0 || sent}
-            className="rounded-[5px] bg-[#9727fc] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#8520e0] disabled:opacity-50"
+            className="rounded-[5px] bg-[#025dfe] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#014dda] active:bg-[#013fba] disabled:opacity-50"
           >
             {sent ? "Sent!" : "Send"}
           </button>

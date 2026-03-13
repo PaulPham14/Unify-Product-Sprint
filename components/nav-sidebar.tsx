@@ -49,8 +49,13 @@ const helpfulLinks = [
 ]
 
 const learningCourses = [
+<<<<<<< HEAD
   { label: "AI Fundamentals", draft: true, color: "bg-purple-300" },
   { label: "AI for Sales & Business Strategy", draft: false, color: "bg-violet-500" },
+=======
+  { label: "Unify", draft: true, color: "bg-[#b8d1ff]" },
+  { label: "Zoom", draft: false, color: "bg-[#025dfe]" },
+>>>>>>> 11d5f34791207c375258b64a37c27b02a5b2cfc3
 ]
 
 const adminNav = [

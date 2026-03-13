@@ -8,7 +8,7 @@ const members = [
     name: "Stephanie Ma",
     subtitle: "Unify Team",
     role: "Owner",
-    roleColor: "bg-purple-100 text-purple-700",
+    roleColor: "bg-[#eaf2ff] text-[#013fba]",
     bgColor: "bg-primary",
     textColor: "text-primary-foreground",
   },

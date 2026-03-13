@@ -1,8 +1,12 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
-import { useQuery } from "convex/react"
 import Link from "next/link"
+import { useQuery } from "convex/react"
+<<<<<<< HEAD
+import Link from "next/link"
+=======
+>>>>>>> 11d5f34791207c375258b64a37c27b02a5b2cfc3
 import { ChevronDown, ChevronRight, ChevronUp, ShieldAlert } from "lucide-react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
@@ -15,12 +19,36 @@ import {
 } from "@/components/ui/select"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
+import { buildCohortDiagnosisHref } from "@/lib/cohort-diagnosis"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
+
+/** Attention items for the For You dashboard (design: Figma 309-4386). Can be wired to Convex later. */
+const ATTENTION_ITEMS = [
+  {
+    id: "mastery",
+    message: "may need more attention, average mastery score",
+    value: "51%",
+    segment: "At Risk" as const,
+  },
+  {
+    id: "video-drop",
+    message: "have high video drop rate of",
+    value: "50%",
+    segment: "At Risk" as const,
+  },
+  {
+    id: "assessment",
+    message: "high assessment incomplete rate of",
+    value: "33%",
+    segment: "At Risk" as const,
+  },
+] as const
 
 export function DashboardForYouContent() {
   const convexAvailable = useConvexAvailable()
   const [month, setMonth] = useState("march_2026")
+  const [attentionExpanded, setAttentionExpanded] = useState(true)
   const trend = useQuery(api.cohortMastery.getCourseProgressTrend, {
     cohortId: INSTRUCTOR_COHORT_ID,
   })
@@ -90,6 +118,69 @@ export function DashboardForYouContent() {
           </div>
         </div>
 
+        {/* Attention banner (Figma 309-4386) */}
+        <div className="mx-auto max-w-4xl px-8">
+          <section
+            className="flex flex-col gap-4 rounded-[14px] border-2 border-[#d40e2b] bg-white p-4"
+            data-node-id="309:4386"
+          >
+            <div className="flex w-full items-start justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center text-[#d40e2b]">
+                  <ShieldAlert className="h-6 w-6" aria-hidden />
+                </div>
+                <p className="text-sm font-medium text-[#d40e2b]">Attention</p>
+                <p className="text-xs font-normal text-muted-foreground">last updated 1:29pm</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttentionExpanded((e) => !e)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-expanded={attentionExpanded}
+                aria-label={attentionExpanded ? "Collapse attention" : "Expand attention"}
+              >
+                {attentionExpanded ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+            {attentionExpanded && (
+              <div className="w-full rounded-[14px] bg-[#fff3f3] p-2.5">
+                <ul className="list-disc space-y-2.5 pl-5">
+                  {ATTENTION_ITEMS.map((item, i) => {
+                    const courseLabel = trend.courses[0]?.title ?? "AI Fundamentals"
+                    const courseId = trend.courses[0]?.courseId ?? "course_ai_fundamentals"
+                    const moduleNum = 5 - i
+                    const insightsHref = buildCohortDiagnosisHref({
+                      courseId,
+                      segment: item.segment,
+                    })
+                    return (
+                      <li
+                        key={item.id}
+                        className="flex items-start justify-between gap-4 text-sm"
+                      >
+                        <span className="flex-1 font-medium text-foreground">
+                          {`${courseLabel} / Module ${moduleNum} ${item.message} `}
+                          <span className="font-bold">{item.value}</span>
+                        </span>
+                        <Link
+                          href={insightsHref}
+                          className="shrink-0 text-xs font-normal text-[#7f23ff] underline"
+                        >
+                          View Insights
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+          </section>
+        </div>
+
         <div className="mx-auto max-w-4xl px-8">
           <section className="mt-2">
             <h2 className="text-sm font-semibold text-foreground">Jump Back In</h2>
@@ -98,6 +189,7 @@ export function DashboardForYouContent() {
                 ref={scrollRef}
                 className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
               >
+<<<<<<< HEAD
                 <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
                   <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-500 to-purple-600 p-4">
                     <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
@@ -115,43 +207,63 @@ export function DashboardForYouContent() {
                         <span className="text-xs text-muted-foreground">0%</span>
                         <div className="h-1.5 w-24 rounded-full bg-secondary">
                           <div className="h-1.5 rounded-full bg-primary" style={{ width: "0%" }} />
+=======
+                {trend.courses.length === 0 ? (
+                  <div className="flex flex-shrink-0 items-center justify-center rounded-xl border border-border bg-card px-8 py-6 text-sm text-muted-foreground">
+                    No courses yet
+                  </div>
+                ) : (
+                  trend.courses.map((course, index) => {
+                    const latestRow = trend.chartData[trend.chartData.length - 1]
+                    const progress = (latestRow && typeof latestRow[course.courseId] === "number")
+                      ? Number(latestRow[course.courseId])
+                      : 0
+                    const gradientClass =
+                      index % 3 === 0
+                        ? "from-[#4a8fff] to-[#025dfe]"
+                        : index % 3 === 1
+                          ? "from-[#79a8ff] to-[#2f76ff]"
+                          : "from-[#b8d1ff] to-[#6ea3ff]"
+                    return (
+                      <div
+                        key={course.courseId}
+                        className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card"
+                      >
+                        <div
+                          className={`flex h-28 w-44 flex-col justify-end bg-gradient-to-br p-4 ${gradientClass}`}
+                          style={index === trend.courses.length - 1 && trend.courses.length > 2 ? { opacity: 0.8 } : undefined}
+                        >
+                          <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                            Course
+                          </span>
+                          <span className="truncate text-base font-semibold text-white" title={course.title}>
+                            {course.title}
+                          </span>
+                        </div>
+                        <div className="flex h-28 w-56 flex-col justify-between p-4">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                            Course
+                          </span>
+                          <div>
+                            <span className="truncate block text-sm font-semibold text-foreground" title={course.title}>
+                              {course.title}
+                            </span>
+                            <div className="mt-2 flex items-center justify-end gap-2">
+                              <span className="text-xs text-muted-foreground">{progress}%</span>
+                              <div className="h-1.5 w-24 rounded-full bg-secondary">
+                                <div
+                                  className="h-1.5 rounded-full bg-primary"
+                                  style={{ width: `${Math.min(100, progress)}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+>>>>>>> 11d5f34791207c375258b64a37c27b02a5b2cfc3
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
-                  <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-400 to-purple-500 p-4">
-                    <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                      Course
-                    </span>
-                    <span className="text-base font-semibold text-white">Unify Taxes</span>
-                  </div>
-                  <div className="flex h-28 w-56 flex-col justify-between p-4">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                      Course
-                    </span>
-                    <div>
-                      <span className="text-sm font-semibold text-foreground">Unify Taxes</span>
-                      <div className="mt-2 flex items-center justify-end gap-2">
-                        <span className="text-xs text-muted-foreground">0%</span>
-                        <div className="h-1.5 w-24 rounded-full bg-secondary">
-                          <div className="h-1.5 rounded-full bg-primary" style={{ width: "0%" }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
-                  <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-purple-300 to-violet-400 p-4 opacity-80">
-                    <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                      Course
-                    </span>
-                    <span className="text-base font-semibold text-white">{"U..."}</span>
-                  </div>
-                </div>
+                    )
+                  })
+                )}
               </div>
 
               <button
