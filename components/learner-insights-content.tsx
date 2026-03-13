@@ -29,7 +29,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { format } from "date-fns"
-import { MoreHorizontal, ExternalLink, ChevronDown, ChevronUp, ShieldAlert } from "lucide-react"
+import { MoreHorizontal, ExternalLink, ChevronDown, ChevronUp, ShieldAlert, Pointer } from "lucide-react"
 import { ActionModal, type ActionModalVariant } from "@/components/assign-review-quiz-modal"
 
 const INSTRUCTOR_COHORT_ID = "cohort_ai_001"
@@ -158,6 +158,7 @@ function LearnerInsightsContentInner({
   )
   const [learnerDropdownOpen, setLearnerDropdownOpen] = useState(false)
   const [selectedCourseId, setSelectedCourseId] = useState<string>("all")
+  const [isLearnerPreviewMode, setIsLearnerPreviewMode] = useState(false)
   const [selectedTrends, setSelectedTrends] = useState<TrendKey[]>(["Mastery"])
   const [progressRange, setProgressRange] = useState<ProgressRange>("all")
 
@@ -179,6 +180,15 @@ function LearnerInsightsContentInner({
   )
   const allModules = useQuery(api.modules.listByCohort, { cohortId: INSTRUCTOR_COHORT_ID })
   const [activeModal, setActiveModal] = useState<ActionModalVariant | null>(null)
+  const selectedCourseTitle =
+    selectedCourseId === "all"
+      ? "All courses"
+      : (courses?.find((course) => course.courseId === selectedCourseId)?.title ?? selectedCourseId)
+  const selectedLearnerAttention = useMemo(() => {
+    if (!Array.isArray(lowestPerformingAttention) || !selectedLearnerId) return null
+    return lowestPerformingAttention.find((item) => item.learnerId === selectedLearnerId) ?? null
+  }, [lowestPerformingAttention, selectedLearnerId])
+  const hasLearnerSelection = Boolean(selectedLearnerId)
 
   const learners = useMemo(() => {
     if (!cohortLearners) return []
@@ -191,6 +201,12 @@ function LearnerInsightsContentInner({
     if (!initialLearnerId) return
     setSelectedLearnerId(initialLearnerId as Id<"user">)
   }, [initialLearnerId])
+
+  useEffect(() => {
+    if (!hasLearnerSelection) {
+      setIsLearnerPreviewMode(false)
+    }
+  }, [hasLearnerSelection])
 
   const masteryProgressData = useMemo(() => {
     if (!scoreHistory?.length) return []
@@ -282,8 +298,22 @@ function LearnerInsightsContentInner({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="flex-1 overflow-y-auto bg-background">
+      {isLearnerPreviewMode ? (
+        <div className="w-full bg-[#27272a] px-6 py-3">
+          <div className="mx-auto flex max-w-6xl items-center justify-between">
+            <span className="text-[14px] font-medium text-white">Previewing as Learner</span>
+            <button
+              type="button"
+              onClick={() => setIsLearnerPreviewMode(false)}
+              className="rounded-[10px] bg-white px-[10px] py-[8px] text-[12px] font-medium text-black"
+            >
+              Exit Mode
+            </button>
+          </div>
+        </div>
+      ) : null}
+      <div className="mx-auto max-w-6xl space-y-6 p-6">
         {/* Top: Course + Student dropdowns, then actions */}
         <div className="flex flex-wrap items-center gap-3">
           <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
@@ -370,6 +400,16 @@ function LearnerInsightsContentInner({
               {recalculating ? "Recalculating…" : "Recalculate scores"}
             </button>
           )}
+          {hasLearnerSelection && (
+            <button
+              type="button"
+              onClick={() => setIsLearnerPreviewMode(true)}
+              className="inline-flex items-center justify-center gap-[10px] rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[12px] font-medium text-white hover:bg-[#7020e6]"
+            >
+              <Pointer className="size-[11px]" aria-hidden />
+              View as a Learner
+            </button>
+          )}
         </div>
 
         {!selectedLearnerId ? (
@@ -381,19 +421,52 @@ function LearnerInsightsContentInner({
           <>
             {/* Main title: Individual Performance Insights */}
             <h1 className="text-[30px] font-bold leading-normal tracking-[0.6px] text-foreground">
-              Individual Performance Insights
+              {isLearnerPreviewMode
+                ? `Hi ${(selectedLearner?.name ?? "Learner").split(" ")[0] ?? "Learner"}`
+                : "Individual Performance Insights"}
             </h1>
+            {isLearnerPreviewMode ? (
+              <div className="w-fit rounded-[10px] border-[1.5px] border-[#eee] bg-white px-[15px] py-[10px] text-xs font-medium text-black">
+                {selectedCourseTitle}
+              </div>
+            ) : null}
 
-            {/* Attention — only for the selected learner when they are at risk */}
-            {Array.isArray(lowestPerformingAttention) && lowestPerformingAttention.filter((item) => item.learnerId === selectedLearnerId).length ? (
-              <section className="space-y-4">
-                <h2 className="text-sm font-medium text-foreground">Attention</h2>
-                {lowestPerformingAttention
-                  .filter((item) => item.learnerId === selectedLearnerId)
-                  .map((item) => (
-                    <AtRiskAttentionCard key={String(item.learnerId)} data={item} />
-                  ))}
-              </section>
+            {/* Attention */}
+            {selectedLearnerAttention ? (
+              isLearnerPreviewMode ? (
+                <section className="rounded-[14px] border-2 border-[#d40e2b] bg-white p-4">
+                  <div className="rounded-[14px] bg-[#fff3f3] p-3">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <ShieldAlert className="h-6 w-6 shrink-0 text-[#d40e2b]" aria-hidden />
+                        <span className="text-[14px] font-medium text-[#d40e2b]">Attention</span>
+                        <span className="text-[14px] text-black">
+                          Looks like you may not understand the core concept from {selectedLearnerAttention.moduleLabel}
+                        </span>
+                      </div>
+                      <ChevronUp className="h-5 w-5 shrink-0 text-black" />
+                    </div>
+                    <ul className="flex flex-col gap-2 pl-5 text-[14px] font-medium text-black list-disc">
+                      <li>
+                        Quiz score: {selectedLearnerAttention.quizScorePct == null ? "—" : `${Math.round(selectedLearnerAttention.quizScorePct)}%`}
+                      </li>
+                      <li>
+                        Video replay: {selectedLearnerAttention.videoReplayCount == null ? "—" : `${Math.round(selectedLearnerAttention.videoReplayCount)}x`}
+                      </li>
+                      <li>
+                        {selectedLearnerAttention.assignmentIncomplete
+                          ? "Assignment incomplete"
+                          : "Assignment completed"}
+                      </li>
+                    </ul>
+                  </div>
+                </section>
+              ) : (
+                <section className="space-y-4">
+                  <h2 className="text-sm font-medium text-foreground">Attention</h2>
+                  <AtRiskAttentionCard data={selectedLearnerAttention} />
+                </section>
+              )
             ) : null}
 
             {/* Recommended Actions To Take — Figma 82:6207 */}
@@ -401,89 +474,130 @@ function LearnerInsightsContentInner({
               <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
                 Recommended Actions To Take
               </h2>
-              <div className="grid gap-3 sm:grid-cols-4">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("review_quiz")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Retrieval Practice</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Assign review quiz</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("concept_walkthrough")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Retention</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Send concept walkthrough</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("office_hours")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Human-in-the-Loop</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Schedule office hours</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("spaced_quiz")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Spaced practice</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Send spaced quizzes</span>
-                </button>
-              </div>
+              {isLearnerPreviewMode ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[14px] font-medium text-black">Retrieval Practice</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
+                    </div>
+                    <span className="text-[18px] font-semibold text-[#7f23ff]">
+                      Review {selectedLearnerAttention?.moduleLabel?.toLowerCase() ?? "module"}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4 text-left transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[14px] font-medium text-black">Human-in-the-Loop</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
+                    </div>
+                    <span className="text-[18px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal("review_quiz")}
+                    className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-medium text-black">Retrieval Practice</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
+                    </div>
+                    <span className="text-[15px] font-semibold text-[#7f23ff]">Assign review quiz</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal("concept_walkthrough")}
+                    className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-medium text-black">Retention</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
+                    </div>
+                    <span className="text-[15px] font-semibold text-[#7f23ff]">Send concept walkthrough</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal("office_hours")}
+                    className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-medium text-black">Human-in-the-Loop</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
+                    </div>
+                    <span className="text-[15px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal("spaced_quiz")}
+                    className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-medium text-black">Spaced practice</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
+                    </div>
+                    <span className="text-[15px] font-semibold text-[#7f23ff]">Send spaced quizzes</span>
+                  </button>
+                </div>
+              )}
             </section>
+
+            {isLearnerPreviewMode ? (
+              <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">Performance Insights</h2>
+            ) : null}
 
             {/* Mastery Score Progression — full-width chart on top */}
             <section className="rounded-[14px] border-2 border-[#eee] bg-white p-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-[14px] font-medium text-black">Lesson Progress</span>
-                <Select value={progressRange} onValueChange={(v) => setProgressRange(v as ProgressRange)}>
-                  <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
-                    <SelectValue />
-                    <ChevronDown className="h-5 w-5 shrink-0 text-black" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="1m">1 Month</SelectItem>
-                    <SelectItem value="1w">1 Week</SelectItem>
-                    <SelectItem value="1d">1 Day</SelectItem>
-                  </SelectContent>
-                </Select>
+                <span className="text-[14px] font-medium text-black">
+                  {isLearnerPreviewMode ? "Mastery Progress" : "Lesson Progress"}
+                </span>
+                {isLearnerPreviewMode ? (
+                  <span className="text-[14px] font-medium text-black">March 2026</span>
+                ) : (
+                  <Select value={progressRange} onValueChange={(v) => setProgressRange(v as ProgressRange)}>
+                    <SelectTrigger className="h-auto gap-2 border-0 bg-transparent p-2 text-[14px] font-medium text-black shadow-none">
+                      <SelectValue />
+                      <ChevronDown className="h-5 w-5 shrink-0 text-black" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="1m">1 Month</SelectItem>
+                      <SelectItem value="1w">1 Week</SelectItem>
+                      <SelectItem value="1d">1 Day</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="mr-1 text-[12px] font-medium text-black">Trend filter:</span>
-                {ALL_TRENDS.map((trend) => {
-                  const active = selectedTrends.includes(trend)
-                  return (
-                    <button
-                      key={trend}
-                      type="button"
-                      onClick={() => toggleTrend(trend)}
-                      className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${
-                        active ? "bg-black text-white" : "bg-[#eee] text-black hover:bg-[#e2e2e2]"
-                      }`}
-                    >
-                      {trend}
-                    </button>
-                  )
-                })}
-              </div>
+              {!isLearnerPreviewMode ? (
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="mr-1 text-[12px] font-medium text-black">Trend filter:</span>
+                  {ALL_TRENDS.map((trend) => {
+                    const active = selectedTrends.includes(trend)
+                    return (
+                      <button
+                        key={trend}
+                        type="button"
+                        onClick={() => toggleTrend(trend)}
+                        className={`rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${
+                          active ? "bg-black text-white" : "bg-[#eee] text-black hover:bg-[#e2e2e2]"
+                        }`}
+                      >
+                        {trend}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
               <div className="h-[240px]">
                 <ChartContainer config={chartConfig} className="h-full w-full">
                   <LineChart data={masteryProgressData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
@@ -491,25 +605,26 @@ function LearnerInsightsContentInner({
                     <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    {selectedTrends.includes("Mastery") && (
+                    {(isLearnerPreviewMode || selectedTrends.includes("Mastery")) && (
                       <Line type="monotone" dataKey="Mastery" stroke="#9727fc" strokeWidth={2.5} dot={{ r: 3 }} />
                     )}
-                    {selectedTrends.includes("Application") && (
+                    {!isLearnerPreviewMode && selectedTrends.includes("Application") && (
                       <Line type="monotone" dataKey="Application" stroke="#00bcd4" strokeWidth={2} dot={{ r: 3 }} />
                     )}
-                    {selectedTrends.includes("Retrieval") && (
+                    {!isLearnerPreviewMode && selectedTrends.includes("Retrieval") && (
                       <Line type="monotone" dataKey="Retrieval" stroke="#ff9800" strokeWidth={2} dot={{ r: 3 }} />
                     )}
-                    {selectedTrends.includes("Retention") && (
+                    {!isLearnerPreviewMode && selectedTrends.includes("Retention") && (
                       <Line type="monotone" dataKey="Retention" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
                     )}
-                    {selectedTrends.includes("Behaviour") && (
+                    {!isLearnerPreviewMode && selectedTrends.includes("Behaviour") && (
                       <Line type="monotone" dataKey="Behaviour" stroke="#6b7280" strokeWidth={2} dot={{ r: 3 }} />
                     )}
                   </LineChart>
                 </ChartContainer>
               </div>
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-5">
+              {!isLearnerPreviewMode ? (
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-5">
                 {selectedTrends.includes("Mastery") && (
                   <span className="flex items-center gap-1.5 text-[12px] text-black">
                     <span className="h-2.5 w-2.5 rounded-sm bg-[#9727fc]" />
@@ -540,7 +655,8 @@ function LearnerInsightsContentInner({
                     Behaviour
                   </span>
                 )}
-              </div>
+                </div>
+              ) : null}
             </section>
 
             {/* Mastery Score — exact Figma layout */}
