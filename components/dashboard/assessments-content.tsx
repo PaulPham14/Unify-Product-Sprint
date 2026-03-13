@@ -303,7 +303,7 @@ export function DashboardAssessmentsContent({
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto bg-[#fafafa] p-6">
+      <div className="flex-1 overflow-y-auto bg-white p-6">
         <div className="mx-auto max-w-6xl space-y-6">
           <h1 className="text-[30px] font-bold leading-normal tracking-[0.6px] text-foreground">
             {showCreateForm ? "New Assessment" : "Assessments"}

@@ -298,7 +298,7 @@ function LearnerInsightsContentInner({
   }
 
   return (
-    <div className={`flex-1 overflow-y-auto bg-background ${isLearnerPreviewMode ? "pt-[48px]" : ""}`}>
+    <div className={`flex-1 overflow-y-auto bg-white ${isLearnerPreviewMode ? "pt-[48px]" : ""}`}>
       {isLearnerPreviewMode ? (
         <div className="fixed left-0 top-0 z-50 flex w-full items-center justify-between bg-[#27272a] px-6 py-3">
           <span className="text-[14px] font-medium text-white">Previewing as Learner</span>
