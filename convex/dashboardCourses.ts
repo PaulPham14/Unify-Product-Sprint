@@ -918,6 +918,10 @@ async function getAssessmentDetailImpl(
                 return aAt > bAt ? a : b;
               })
             : null;
+        const timeSpentSec =
+          learnerRows.length > 0
+            ? learnerRows.reduce((sum, r) => sum + (r.timeOnTaskSec ?? 0), 0)
+            : null;
         return {
           learnerId: learner?._id ?? enrollment.userId,
           userId: enrollment.userId,
@@ -926,6 +930,7 @@ async function getAssessmentDetailImpl(
           scoreLabel: scoreLabelFromPct(learnerPct),
           submittedAt: latestResult?.completedAt ?? null,
           attempts: latestResult?.attempts ?? null,
+          timeSpentSec,
         };
       })
       .sort((a, b) => String(a.learnerName ?? "").localeCompare(String(b.learnerName ?? "")));
@@ -953,10 +958,23 @@ async function getAssessmentDetailImpl(
       .filter((value): value is number => value != null);
     const classAverage =
       scoresWithValues.length > 0 ? average(scoresWithValues) : null;
+    const timeSpentValues = learnerGrades
+      .map((g) => g.timeSpentSec)
+      .filter((value): value is number => value != null && value > 0);
+    const averageTimeSpentSec =
+      timeSpentValues.length > 0 ? average(timeSpentValues) : null;
     const hasAnySubmissions = matchedTaskResults.length > 0;
     const displayStatus = hasAnySubmissions ? assessmentDoc.status : "not_started";
     const showScore = hasAnySubmissions && classAverage != null;
     const moduleDisplayOrder = moduleDoc?.order ?? orderFromType;
+
+    function formatTimeSpent(sec: number | null): string {
+      if (sec == null || sec <= 0) return "—";
+      const mins = Math.floor(sec / 60);
+      const s = Math.round(sec % 60);
+      if (mins > 0) return `${mins} min${mins !== 1 ? "s" : ""} ${s} sec${s !== 1 ? "s" : ""}`;
+      return `${s} sec${s !== 1 ? "s" : ""}`;
+    }
 
     return {
       assessmentId: assessmentDoc.assessmentId ?? null,
@@ -969,6 +987,7 @@ async function getAssessmentDetailImpl(
       status: displayStatus,
       averageScore: classAverage == null ? null : round2(classAverage),
       averageScoreLabel: showScore ? `${Math.round(classAverage!)}%` : "-",
+      averageTimeSpentLabel: formatTimeSpent(averageTimeSpentSec),
       instructions: assessmentDoc.instructions ?? undefined,
       rubric: assessmentDoc.rubric ?? undefined,
       assessmentKind: assessmentDoc.assessmentKind ?? undefined,

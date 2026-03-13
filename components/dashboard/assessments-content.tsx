@@ -775,7 +775,9 @@ export function DashboardAssessmentsContent({
                     <p className="text-sm font-medium text-[#5b5b5b]">Average Score</p>
                   </div>
                   <div className="flex flex-1 flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4">
-                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">—</p>
+                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">
+                      {detail.averageTimeSpentLabel ?? "—"}
+                    </p>
                     <p className="text-sm font-medium text-[#5b5b5b]">Average Time Spent</p>
                   </div>
                 </div>
@@ -809,6 +811,16 @@ export function DashboardAssessmentsContent({
                               year: "numeric",
                             })
                           : "—"
+                      const timeSpentLabel =
+                        row.timeSpentSec != null && row.timeSpentSec > 0
+                          ? (() => {
+                              const mins = Math.floor(row.timeSpentSec! / 60)
+                              const secs = Math.round(row.timeSpentSec! % 60)
+                              return mins > 0
+                                ? `${mins} min${mins !== 1 ? "s" : ""} ${secs} sec${secs !== 1 ? "s" : ""}`
+                                : `${secs} sec${secs !== 1 ? "s" : ""}`
+                            })()
+                          : "—"
                       return (
                         <div
                           key={String(row.learnerId)}
@@ -821,7 +833,7 @@ export function DashboardAssessmentsContent({
                             <span className="text-sm text-black">{row.scoreLabel ?? "—"}</span>
                           </div>
                           <div className="flex flex-1 items-center justify-center px-2.5 py-3">
-                            <span className="text-sm text-black">—</span>
+                            <span className="text-sm text-black">{timeSpentLabel}</span>
                           </div>
                           <div className="flex flex-1 items-center justify-center px-2.5 py-3">
                             <span className="text-sm text-black">{completedOn}</span>
