@@ -491,15 +491,18 @@ export function DashboardAssessmentsContent({
                   <div className="space-y-4">
                     {rubric.map((row, idx) => (
                       <div key={idx} className="grid grid-cols-[1fr_180px] gap-4">
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           <input
+                            type="text"
                             value={row.criterion}
                             onChange={(e) => {
                               const next = [...rubric]
                               next[idx] = { ...row, criterion: e.target.value }
                               setRubric(next)
                             }}
-                            className="w-full border-0 p-0 text-sm font-medium text-black outline-none"
+                            placeholder="Enter criterion name"
+                            className="w-full rounded-[8px] border-2 border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-black placeholder:text-[#adadad] outline-none focus:border-[#9727fc] focus:ring-1 focus:ring-[#9727fc]/20"
+                            aria-label="Criterion name"
                           />
                           <textarea
                             value={row.description}
@@ -508,7 +511,9 @@ export function DashboardAssessmentsContent({
                               next[idx] = { ...row, description: e.target.value }
                               setRubric(next)
                             }}
-                            className="min-h-[40px] w-full border-0 p-0 text-xs text-black outline-none"
+                            placeholder="Description (optional)"
+                            className="min-h-[40px] w-full rounded-[8px] border-2 border-[#e5e5e5] bg-white px-3 py-2 text-xs text-black placeholder:text-[#adadad] outline-none focus:border-[#9727fc] focus:ring-1 focus:ring-[#9727fc]/20"
+                            aria-label="Criterion description"
                           />
                         </div>
                         <div className="space-y-1">
