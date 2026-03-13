@@ -30,7 +30,7 @@ import {
 const THRESHOLDS = [
   { x: 90, label: "High Mastery Average", color: "#3cc3df" },
   { x: 75, label: "On Track Average", color: "#ff8a9e" },
-  { x: 60, label: "At Risk Average", color: "#9727fc" },
+  { x: 60, label: "At Risk Average", color: "#025dfe" },
   { x: 50, label: "Disengaged Average", color: "#ffae4c" },
 ]
 
@@ -106,11 +106,11 @@ function ConceptEngagementConsumedCell({ value }: { value: number }) {
       </span>
       <div className="relative h-[8px] w-full rounded-[100px] bg-[#d9d9d9]">
         <div
-          className="absolute left-0 top-0 h-[8px] rounded-[100px] bg-[#7f23ff]"
+          className="absolute left-0 top-0 h-[8px] rounded-[100px] bg-[#025dfe]"
           style={{ width: `${safeValue}%` }}
         />
         <div
-          className="absolute top-1/2 h-[7.826px] w-[7.826px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.6px] border-[#d9d9d9] bg-[#7f23ff]"
+          className="absolute top-1/2 h-[7.826px] w-[7.826px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.6px] border-[#d9d9d9] bg-[#025dfe]"
           style={{ left: `${markerValue}%` }}
         />
       </div>
@@ -344,7 +344,7 @@ function ModuleInsightContent() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">Convex is not configured.</p>
-        <Link href={backHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
+        <Link href={backHref} className="text-sm font-medium text-[#025dfe] underline hover:no-underline">
           Back to Dashboard
         </Link>
       </div>
@@ -355,7 +355,7 @@ function ModuleInsightContent() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">Missing course or module. Open this page from View Insights on the Courses page.</p>
-        <Link href={backHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
+        <Link href={backHref} className="text-sm font-medium text-[#025dfe] underline hover:no-underline">
           Back to Dashboard
         </Link>
       </div>
@@ -374,7 +374,7 @@ function ModuleInsightContent() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white p-6">
         <p className="text-sm text-[#5b5b5b]">Module insight not found.</p>
-        <Link href={backHref} className="text-sm font-medium text-[#9727fc] underline hover:no-underline">
+        <Link href={backHref} className="text-sm font-medium text-[#025dfe] underline hover:no-underline">
           Back to Dashboard
         </Link>
       </div>
@@ -403,7 +403,7 @@ function ModuleInsightContent() {
                 <select
                   value={moduleId}
                   onChange={(e) => handleModuleChange(e.target.value)}
-                  className="h-full min-w-[220px] cursor-pointer appearance-none rounded-[10px] border border-[#eee] bg-white pl-3 pr-9 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-[#9727fc]/30"
+                  className="h-full min-w-[220px] cursor-pointer appearance-none rounded-[10px] border border-[#eee] bg-white pl-3 pr-9 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-[#025dfe]/30"
                 >
                   {sortedModules.map((mod) => (
                     <option key={mod.moduleId} value={mod.moduleId}>
@@ -436,7 +436,7 @@ function ModuleInsightContent() {
                       <ExternalLink className="h-4 w-4" />
                     </span>
                     <p className="text-sm font-semibold text-black">{item.title}</p>
-                    <span className="mt-2 block text-xs font-medium text-[#9727fc] underline hover:no-underline">
+                    <span className="mt-2 block text-xs font-medium text-[#025dfe] underline hover:no-underline">
                       {item.action}
                     </span>
                   </button>
@@ -462,7 +462,7 @@ function ModuleInsightContent() {
                 <p className="text-[10px] font-medium uppercase tracking-wide text-[#5b5b5b]">
                   Module mastery score
                 </p>
-                <p className="mt-2 text-[30px] font-bold leading-none text-[#9727fc]">
+                <p className="mt-2 text-[30px] font-bold leading-none text-[#025dfe]">
                   {masteryPct}%
                 </p>
               </div>
@@ -495,13 +495,13 @@ function ModuleInsightContent() {
                 <div className="flex h-[28px] overflow-hidden rounded-full border border-[#ddd]">
                   <button
                     onClick={() => setYAxisMode("count")}
-                    className={`px-3 text-[10px] font-medium transition-colors ${yAxisMode === "count" ? "bg-[#9727fc] text-white" : "bg-white text-black hover:bg-gray-50"}`}
+                    className={`px-3 text-[10px] font-medium transition-colors ${yAxisMode === "count" ? "bg-[#025dfe] text-white" : "bg-white text-black hover:bg-gray-50"}`}
                   >
                     # of Students
                   </button>
                   <button
                     onClick={() => setYAxisMode("pct")}
-                    className={`px-3 text-[10px] font-medium transition-colors ${yAxisMode === "pct" ? "bg-[#9727fc] text-white" : "bg-white text-black hover:bg-gray-50"}`}
+                    className={`px-3 text-[10px] font-medium transition-colors ${yAxisMode === "pct" ? "bg-[#025dfe] text-white" : "bg-white text-black hover:bg-gray-50"}`}
                   >
                     % of Students
                   </button>
@@ -515,8 +515,8 @@ function ModuleInsightContent() {
                       <AreaChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 32 }}>
                         <defs>
                           <linearGradient id="bellGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#9727fc" stopOpacity={0.25} />
-                            <stop offset="100%" stopColor="#9727fc" stopOpacity={0.02} />
+                            <stop offset="0%" stopColor="#025dfe" stopOpacity={0.25} />
+                            <stop offset="100%" stopColor="#025dfe" stopOpacity={0.02} />
                           </linearGradient>
                         </defs>
                         <XAxis
@@ -569,11 +569,11 @@ function ModuleInsightContent() {
                         <Area
                           type="monotone"
                           dataKey={yAxisMode === "count" ? "count" : "pct"}
-                          stroke="#9727fc"
+                          stroke="#025dfe"
                           strokeWidth={2.5}
                           fill="url(#bellGrad)"
                           dot={false}
-                          activeDot={{ r: 4, fill: "#9727fc" }}
+                          activeDot={{ r: 4, fill: "#025dfe" }}
                         />
                       </AreaChart>
                     </ResponsiveContainer>

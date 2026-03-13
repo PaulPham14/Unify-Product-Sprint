@@ -49,8 +49,8 @@ const helpfulLinks = [
 ]
 
 const learningCourses = [
-  { label: "Unify", draft: true, color: "bg-purple-300" },
-  { label: "Zoom", draft: false, color: "bg-violet-500" },
+  { label: "Unify", draft: true, color: "bg-[#b8d1ff]" },
+  { label: "Zoom", draft: false, color: "bg-[#025dfe]" },
 ]
 
 const adminNav = [

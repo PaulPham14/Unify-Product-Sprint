@@ -35,8 +35,8 @@ export function LearningContent() {
 
         {/* Course card */}
         <div className="w-72 rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-          {/* Purple gradient top */}
-          <div className="relative h-36 bg-gradient-to-br from-violet-300 via-purple-300 to-violet-400 p-4 flex flex-col justify-end">
+          {/* Blue gradient top */}
+          <div className="relative h-36 bg-gradient-to-br from-[#b8d1ff] via-[#79a8ff] to-[#4a8fff] p-4 flex flex-col justify-end">
             <button className="absolute top-3 right-3 text-card/70 hover:text-card">
               <MoreVertical className="h-5 w-5" />
             </button>

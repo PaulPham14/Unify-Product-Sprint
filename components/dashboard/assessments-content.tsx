@@ -66,9 +66,9 @@ function StatusPill({ status }: { status: string }) {
   const style = notStarted
     ? "bg-[#f0f0f0] text-[#5b5b5b]"
     : inProgress
-      ? "bg-[#f3e6ff] text-[#9727fc]"
+      ? "bg-[#eaf2ff] text-[#025dfe]"
       : "bg-[#e1f3de] text-[#259800]"
-  const dotStyle = notStarted ? "bg-[#5b5b5b]" : inProgress ? "bg-[#9727fc]" : "bg-[#259800]"
+  const dotStyle = notStarted ? "bg-[#5b5b5b]" : inProgress ? "bg-[#025dfe]" : "bg-[#259800]"
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${style}`}
@@ -403,7 +403,7 @@ export function DashboardAssessmentsContent({
               <div className="space-y-4">
                 <label className="text-sm font-medium text-black">Rubric*</label>
                 <div className="rounded-[10px] border-2 border-[#eee] p-4">
-                  <div className="mb-4 grid grid-cols-[1fr_180px] text-sm font-medium text-[#7f23ff]">
+                  <div className="mb-4 grid grid-cols-[1fr_180px] text-sm font-medium text-[#025dfe]">
                     <span>Criterion</span>
                     <span className="text-right">Weighting</span>
                   </div>
@@ -420,7 +420,7 @@ export function DashboardAssessmentsContent({
                               setRubric(next)
                             }}
                             placeholder="Enter criterion name"
-                            className="w-full rounded-[8px] border-2 border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-black placeholder:text-[#adadad] outline-none focus:border-[#9727fc] focus:ring-1 focus:ring-[#9727fc]/20"
+                            className="w-full rounded-[8px] border-2 border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-black placeholder:text-[#adadad] outline-none focus:border-[#025dfe] focus:ring-1 focus:ring-[#025dfe]/20"
                             aria-label="Criterion name"
                           />
                           <textarea
@@ -431,7 +431,7 @@ export function DashboardAssessmentsContent({
                               setRubric(next)
                             }}
                             placeholder="Description (optional)"
-                            className="min-h-[40px] w-full rounded-[8px] border-2 border-[#e5e5e5] bg-white px-3 py-2 text-xs text-black placeholder:text-[#adadad] outline-none focus:border-[#9727fc] focus:ring-1 focus:ring-[#9727fc]/20"
+                            className="min-h-[40px] w-full rounded-[8px] border-2 border-[#e5e5e5] bg-white px-3 py-2 text-xs text-black placeholder:text-[#adadad] outline-none focus:border-[#025dfe] focus:ring-1 focus:ring-[#025dfe]/20"
                             aria-label="Criterion description"
                           />
                         </div>
@@ -450,10 +450,10 @@ export function DashboardAssessmentsContent({
                                 next[idx] = { ...row, weightPct: clamped }
                                 setRubric(next)
                               }}
-                              className="w-16 rounded-[8px] border-2 border-[#e5e5e5] bg-white px-2 py-1.5 text-right text-sm font-medium text-black outline-none focus:border-[#9727fc] focus:ring-1 focus:ring-[#9727fc]/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              className="w-16 rounded-[8px] border-2 border-[#e5e5e5] bg-white px-2 py-1.5 text-right text-sm font-medium text-black outline-none focus:border-[#025dfe] focus:ring-1 focus:ring-[#025dfe]/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                               aria-label="Weight percentage"
                             />
-                            <span className="text-sm font-medium text-[#7f23ff]">%</span>
+                            <span className="text-sm font-medium text-[#025dfe]">%</span>
                           </div>
                           <input
                             type="range"
@@ -466,7 +466,7 @@ export function DashboardAssessmentsContent({
                               next[idx] = { ...row, weightPct: Number(e.target.value) }
                               setRubric(next)
                             }}
-                            className="w-full accent-[#7f23ff]"
+                            className="w-full accent-[#025dfe]"
                             aria-label="Weight slider"
                           />
                           <div className="flex justify-between text-[10px] text-[#adadad]">
@@ -514,7 +514,7 @@ export function DashboardAssessmentsContent({
                   <button
                     type="button"
                     onClick={balanceRubricTo100}
-                    className="rounded-[8px] border border-[#7f23ff] bg-[#f3e6ff] px-3 py-1.5 text-xs font-medium text-[#7f23ff] hover:bg-[#ede0fc]"
+                    className="rounded-[8px] border border-[#b8d1ff] bg-[#eaf2ff] px-3 py-1.5 text-xs font-medium text-[#025dfe] hover:bg-[#dce9ff]"
                   >
                     Balance to 100%
                   </button>
@@ -534,7 +534,7 @@ export function DashboardAssessmentsContent({
                 type="button"
                 onClick={handleCreateAssessment}
                 disabled={!canCreate || creating}
-                className="rounded-[10px] bg-[#7f23ff] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50"
+                className="rounded-[10px] bg-[#025dfe] px-4 py-2.5 text-xs font-medium text-white disabled:opacity-50 hover:bg-[#014dda] active:bg-[#013fba]"
               >
                 {creating ? "Creating..." : "Create Assessment"}
               </button>
@@ -598,7 +598,7 @@ export function DashboardAssessmentsContent({
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(true)}
-                  className="rounded-[10px] bg-[#7f23ff] px-[10px] py-[10px] text-xs font-medium text-white"
+                  className="rounded-[10px] bg-[#025dfe] px-[10px] py-[10px] text-xs font-medium text-white hover:bg-[#014dda] active:bg-[#013fba]"
                 >
                   Create New Assessment
                 </button>
@@ -715,7 +715,7 @@ export function DashboardAssessmentsContent({
                         key={num}
                         type="button"
                         onClick={() => setPage(num)}
-                        className={`rounded px-2 py-1 ${active ? "font-bold text-[#9727fc]" : "text-[#5b5b5b]"}`}
+                        className={`rounded px-2 py-1 ${active ? "font-bold text-[#025dfe]" : "text-[#5b5b5b]"}`}
                       >
                         {num}
                       </button>
@@ -752,7 +752,7 @@ export function DashboardAssessmentsContent({
               <div className="flex flex-col items-center justify-center gap-4 p-12">
                 <p className="text-sm text-[#5b5b5b]">Loading…</p>
                 {loadTimeout && (
-                  <button type="button" onClick={closeDetail} className="text-sm font-medium text-[#9727fc] underline">
+                  <button type="button" onClick={closeDetail} className="text-sm font-medium text-[#025dfe] underline">
                     Back to Assessments
                   </button>
                 )}
@@ -761,7 +761,7 @@ export function DashboardAssessmentsContent({
             {detail === null && (
               <div className="flex flex-col items-center justify-center gap-4 p-12">
                 <p className="text-sm text-[#5b5b5b]">Assessment not found.</p>
-                <button type="button" onClick={closeDetail} className="text-sm font-medium text-[#9727fc] underline">
+                <button type="button" onClick={closeDetail} className="text-sm font-medium text-[#025dfe] underline">
                   Back to Assessments
                 </button>
               </div>
@@ -783,20 +783,20 @@ export function DashboardAssessmentsContent({
                 </div>
                 <div className="flex shrink-0 gap-4 border-b border-[#e0e0e0] p-4">
                   <div className="flex flex-1 flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4">
-                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">
+                    <p className="text-[30px] font-semibold leading-none text-[#025dfe]">
                       {detail.learnerGrades.filter((g) => g.submittedAt != null).length}/
                       {detail.learnerGrades.length}
                     </p>
                     <p className="text-sm font-medium text-[#5b5b5b]">Submissions</p>
                   </div>
                   <div className="flex flex-1 flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4">
-                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">
+                    <p className="text-[30px] font-semibold leading-none text-[#025dfe]">
                       {detail.averageScoreLabel}
                     </p>
                     <p className="text-sm font-medium text-[#5b5b5b]">Average Score</p>
                   </div>
                   <div className="flex flex-1 flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-4">
-                    <p className="text-[30px] font-semibold leading-none text-[#7f23ff]">
+                    <p className="text-[30px] font-semibold leading-none text-[#025dfe]">
                       {detail.averageTimeSpentLabel ?? "—"}
                     </p>
                     <p className="text-sm font-medium text-[#5b5b5b]">Average Time Spent</p>

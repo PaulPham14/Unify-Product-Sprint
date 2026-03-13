@@ -268,7 +268,7 @@ function CohortDiagnosisContentInner() {
                         dashboardSubPage: "learners",
                         learnerId: row.learnerId,
                       })}
-                      className="text-[14px] leading-normal text-[#7f23ff] underline underline-offset-2 transition-opacity hover:opacity-80"
+                      className="text-[14px] leading-normal text-[#025dfe] underline underline-offset-2 transition-opacity hover:opacity-80"
                     >
                       View Learner Insights
                     </Link>
@@ -310,7 +310,7 @@ function CohortDiagnosisContentInner() {
                 <img src={PAGINATION_LEFT_ICON} alt="" className="h-[15px] w-[15px]" />
               </button>
               <div className="flex h-[35px] min-w-[35px] items-center justify-center rounded-[4px] px-[10px]">
-                <span className="text-[10px] font-bold leading-[1.4] text-[#9727fc]">
+                <span className="text-[10px] font-bold leading-[1.4] text-[#025dfe]">
                   {safeCurrentPage}
                 </span>
               </div>

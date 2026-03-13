@@ -18,9 +18,9 @@ export function AcademyContent() {
           <h2 className="text-sm font-semibold text-foreground mb-4">Posts</h2>
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             {/* Post image area */}
-            <div className="h-36 bg-gradient-to-br from-purple-100 via-purple-50 to-purple-100 flex items-center justify-center">
-              <div className="h-12 w-12 rounded bg-purple-200/60 flex items-center justify-center">
-                <svg className="h-6 w-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <div className="h-36 bg-gradient-to-br from-[#eaf2ff] via-[#f5f9ff] to-[#eaf2ff] flex items-center justify-center">
+              <div className="h-12 w-12 rounded bg-[#b8d1ff]/60 flex items-center justify-center">
+                <svg className="h-6 w-6 text-[#4a8fff]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M12 5l7 7-7 7M5 12h14" />
                 </svg>
               </div>

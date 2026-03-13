@@ -24,7 +24,7 @@ const ROWS_PER_PAGE = 6
 const DIAGNOSIS_COLORS = {
   highMastery: "#3cc3df",
   onTrack: "#ff8a9e",
-  atRisk: "#9727fc",
+  atRisk: "#025dfe",
   disengaged: "#ffae4c",
 }
 
@@ -240,13 +240,13 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span
       className="inline-flex items-center gap-[10px] rounded-full px-[10px] py-[5px] text-xs font-medium whitespace-nowrap"
-      style={{ backgroundColor: isDone ? "#e1f3de" : "#f3e6ff" }}
+      style={{ backgroundColor: isDone ? "#e1f3de" : "#eaf2ff" }}
     >
       <span
         className="inline-block size-[8px] rounded-full"
-        style={{ backgroundColor: isDone ? "#259800" : "#9727fc" }}
+        style={{ backgroundColor: isDone ? "#259800" : "#025dfe" }}
       />
-      <span style={{ color: isDone ? "#259800" : "#9727fc" }}>
+      <span style={{ color: isDone ? "#259800" : "#025dfe" }}>
         {isDone ? "Done" : "In Progress"}
       </span>
     </span>
@@ -282,7 +282,7 @@ function CompactConfigInput({
       onChange={(event) => onChange(event.target.value)}
       onBlur={onBlur}
       type="text"
-      className={`${widthClassName} h-[22px] rounded-[5px] border-[1.5px] border-[#eee] px-[10px] py-[5px] text-[10px] font-medium text-black shadow-none focus-visible:border-[#7f23ff] focus-visible:ring-[3px] focus-visible:ring-[#7f23ff]/15`}
+      className={`${widthClassName} h-[22px] rounded-[5px] border-[1.5px] border-[#eee] px-[10px] py-[5px] text-[10px] font-medium text-black shadow-none focus-visible:border-[#025dfe] focus-visible:ring-[3px] focus-visible:ring-[#025dfe]/15`}
     />
   )
 }
@@ -397,7 +397,7 @@ function MasteryWeightingDialog({
             type="button"
             onClick={handleSave}
             disabled={!validation.masteryWeights || saving}
-            className="h-auto rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[10px] font-medium text-white hover:bg-[#7f23ff]/90"
+            className="h-auto rounded-[5px] bg-[#025dfe] px-[10px] py-[5px] text-[10px] font-medium text-white hover:bg-[#014dda] active:bg-[#013fba]"
           >
             {saving ? "Saving..." : "Save"}
           </Button>
@@ -538,7 +538,7 @@ function DiagnosisWeightingDialog({
             type="button"
             onClick={handleSave}
             disabled={!validation.diagnosisThresholds || saving}
-            className="h-auto rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[10px] font-medium text-white hover:bg-[#7f23ff]/90"
+            className="h-auto rounded-[5px] bg-[#025dfe] px-[10px] py-[5px] text-[10px] font-medium text-white hover:bg-[#014dda] active:bg-[#013fba]"
           >
             {saving ? "Saving..." : "Save"}
           </Button>
@@ -562,7 +562,7 @@ function InsightCardHeader({
         <button
           type="button"
           onClick={onEdit}
-          className="text-[12px] leading-normal text-[#7f23ff] transition-opacity hover:opacity-80"
+          className="text-[12px] leading-normal text-[#025dfe] transition-opacity hover:opacity-80"
         >
           Edit weighting
         </button>
@@ -592,7 +592,7 @@ function DiagnosisHoverCard({
       </div>
       <Link
         href={href}
-        className="flex w-full shrink-0 items-center justify-center gap-[10px] rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[10px] font-medium leading-normal text-white transition-opacity hover:opacity-90"
+        className="flex w-full shrink-0 items-center justify-center gap-[10px] rounded-[5px] bg-[#025dfe] px-[10px] py-[5px] text-[10px] font-medium leading-normal text-white transition-opacity hover:bg-[#014dda] active:bg-[#013fba]"
       >
         <Pointer className="size-[11px] shrink-0" aria-hidden />
         Click to View People
@@ -757,7 +757,7 @@ function MasteryGauge({ course, onEdit }: { course: CourseDoc; onEdit: () => voi
                 cx="84"
                 cy="83"
                 r={MASTERY_GAUGE_RADIUS}
-                stroke="#9727fc"
+                stroke="#025dfe"
                 strokeWidth="12"
                 strokeLinecap="round"
                 fill="none"
@@ -782,7 +782,7 @@ function MasteryGauge({ course, onEdit }: { course: CourseDoc; onEdit: () => voi
               })}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-center text-[30px] font-bold leading-none text-[#9727fc]">
+              <span className="text-center text-[30px] font-bold leading-none text-[#025dfe]">
                 {score}
               </span>
               <span className="mt-[6px] text-[10px] leading-none text-[#888]">out of 100</span>
@@ -792,7 +792,7 @@ function MasteryGauge({ course, onEdit }: { course: CourseDoc; onEdit: () => voi
             {breakdowns.map((b) => (
               <div key={b.label} className="flex w-[192px] items-center justify-between text-xs leading-none">
                 <span className="text-black">{b.label}</span>
-                <span className="font-medium text-[#9727fc]">{b.score} / {b.max}</span>
+                <span className="font-medium text-[#025dfe]">{b.score} / {b.max}</span>
               </div>
             ))}
             <div className="h-px w-[192px] bg-[#ccc]" />
@@ -885,7 +885,7 @@ function ModuleInsightsTable({ insights }: { insights: ModuleInsightList | undef
               <div className="flex flex-1 items-center justify-center">
                 <Link
                   href={`/dashboard/module-insight?courseId=${encodeURIComponent(row.courseId)}&moduleId=${encodeURIComponent(row.moduleId)}`}
-                  className="text-xs font-medium text-[#9727fc] underline hover:no-underline"
+                  className="text-xs font-medium text-[#025dfe] underline hover:no-underline"
                 >
                   View Insights
                 </Link>
@@ -1180,7 +1180,7 @@ function DashboardCoursesContentInner() {
                 className="flex flex-col justify-between rounded-xl border-2 border-[#eee] bg-white px-6 py-5"
               >
                 <div className="flex items-start justify-between">
-                  <span className="text-[30px] font-bold leading-none text-[#9727fc]">
+                  <span className="text-[30px] font-bold leading-none text-[#025dfe]">
                     {stat.value}
                   </span>
                 </div>

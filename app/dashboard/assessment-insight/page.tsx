@@ -29,9 +29,9 @@ function StatusPill({ status }: { status: string }) {
   const style = notStarted
     ? "bg-[#f0f0f0] text-[#5b5b5b]"
     : inProgress
-      ? "bg-[#f3e6ff] text-[#9727fc]"
+      ? "bg-[#eaf2ff] text-[#025dfe]"
       : "bg-[#e1f3de] text-[#259800]"
-  const dotStyle = notStarted ? "bg-[#5b5b5b]" : inProgress ? "bg-[#9727fc]" : "bg-[#259800]"
+  const dotStyle = notStarted ? "bg-[#5b5b5b]" : inProgress ? "bg-[#025dfe]" : "bg-[#259800]"
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-medium ${style}`}
@@ -69,7 +69,7 @@ function AssessmentInsightContent() {
         <p className="text-sm text-[#5b5b5b]">Convex is not configured.</p>
         <Link
           href={backHref}
-          className="text-sm font-medium text-[#9727fc] underline hover:no-underline"
+          className="text-sm font-medium text-[#025dfe] underline hover:no-underline"
         >
           Back to Assessments
         </Link>
@@ -85,7 +85,7 @@ function AssessmentInsightContent() {
         </p>
         <Link
           href={backHref}
-          className="text-sm font-medium text-[#9727fc] underline hover:no-underline"
+          className="text-sm font-medium text-[#025dfe] underline hover:no-underline"
         >
           Back to Assessments
         </Link>
@@ -107,7 +107,7 @@ function AssessmentInsightContent() {
         <p className="text-sm text-[#5b5b5b]">Assessment not found.</p>
         <Link
           href={backHref}
-          className="text-sm font-medium text-[#9727fc] underline hover:no-underline"
+          className="text-sm font-medium text-[#025dfe] underline hover:no-underline"
         >
           Back to Assessments
         </Link>

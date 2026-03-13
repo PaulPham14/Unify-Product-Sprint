@@ -27,9 +27,9 @@ export function MainContent() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-background">
-      {/* Greeting with lavender gradient */}
+      {/* Greeting with blue gradient */}
       <div className="relative overflow-hidden px-8 pb-6 pt-10">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#f0e6ff] via-[#f5eeff] to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#eaf2ff] via-[#f5f9ff] to-transparent" />
         <div className="relative mx-auto max-w-4xl">
           <h1 className="text-3xl font-bold text-foreground">Hi Stephanie</h1>
         </div>
@@ -46,7 +46,7 @@ export function MainContent() {
             >
               {/* Zoom combined card: gradient left + info right */}
               <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
-                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-500 to-purple-600 p-4">
+                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-[#4a8fff] to-[#025dfe] p-4">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
@@ -73,7 +73,7 @@ export function MainContent() {
 
               {/* Unify Taxes combined card: gradient left + info right */}
               <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
-                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-400 to-purple-500 p-4">
+                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-[#79a8ff] to-[#2f76ff] p-4">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>
@@ -100,7 +100,7 @@ export function MainContent() {
 
               {/* Partially visible card peeking from the right */}
               <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
-                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-purple-300 to-violet-400 p-4 opacity-80">
+                <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-[#b8d1ff] to-[#6ea3ff] p-4 opacity-80">
                   <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                     Course
                   </span>

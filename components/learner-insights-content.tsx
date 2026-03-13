@@ -262,7 +262,7 @@ function LearnerInsightsContentInner({
 
   const chartConfig = useMemo(
     () => ({
-      Mastery: { label: "Mastery", color: "#9727fc" },
+      Mastery: { label: "Mastery", color: "#025dfe" },
       Application: { label: "Application", color: "#00bcd4" },
       Retrieval: { label: "Retrieval", color: "#ff9800" },
       Retention: { label: "Retention", color: "#ef4444" },
@@ -411,7 +411,7 @@ function LearnerInsightsContentInner({
                     <span className="text-[12px] font-medium text-black">Retrieval Practice</span>
                     <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                   </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Assign review quiz</span>
+                  <span className="text-[15px] font-semibold text-[#025dfe]">Assign review quiz</span>
                 </button>
                 <button
                   type="button"
@@ -422,7 +422,7 @@ function LearnerInsightsContentInner({
                     <span className="text-[12px] font-medium text-black">Retention</span>
                     <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                   </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Send concept walkthrough</span>
+                  <span className="text-[15px] font-semibold text-[#025dfe]">Send concept walkthrough</span>
                 </button>
                 <button
                   type="button"
@@ -433,7 +433,7 @@ function LearnerInsightsContentInner({
                     <span className="text-[12px] font-medium text-black">Human-in-the-Loop</span>
                     <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                   </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                  <span className="text-[15px] font-semibold text-[#025dfe]">Schedule office hours</span>
                 </button>
                 <button
                   type="button"
@@ -444,7 +444,7 @@ function LearnerInsightsContentInner({
                     <span className="text-[12px] font-medium text-black">Spaced practice</span>
                     <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                   </div>
-                  <span className="text-[15px] font-semibold text-[#7f23ff]">Send spaced quizzes</span>
+                  <span className="text-[15px] font-semibold text-[#025dfe]">Send spaced quizzes</span>
                 </button>
               </div>
             </section>
@@ -492,7 +492,7 @@ function LearnerInsightsContentInner({
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     {selectedTrends.includes("Mastery") && (
-                      <Line type="monotone" dataKey="Mastery" stroke="#9727fc" strokeWidth={2.5} dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="Mastery" stroke="#025dfe" strokeWidth={2.5} dot={{ r: 3 }} />
                     )}
                     {selectedTrends.includes("Application") && (
                       <Line type="monotone" dataKey="Application" stroke="#00bcd4" strokeWidth={2} dot={{ r: 3 }} />
@@ -512,7 +512,7 @@ function LearnerInsightsContentInner({
               <div className="mt-2 flex flex-wrap items-center justify-center gap-5">
                 {selectedTrends.includes("Mastery") && (
                   <span className="flex items-center gap-1.5 text-[12px] text-black">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-[#9727fc]" />
+                    <span className="h-2.5 w-2.5 rounded-sm bg-[#025dfe]" />
                     Mastery
                   </span>
                 )}
@@ -564,7 +564,7 @@ function LearnerInsightsContentInner({
                       />
                       <path
                         d="M 20 140 A 72 72 0 1 1 148 140"
-                        stroke="#9727fc"
+                        stroke="#025dfe"
                         strokeWidth="14"
                         strokeLinecap="round"
                         fill="none"
@@ -572,7 +572,7 @@ function LearnerInsightsContentInner({
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
-                      <span className="text-[30px] font-bold text-[#9727fc]">{Math.round(displayMastery)}</span>
+                      <span className="text-[30px] font-bold text-[#025dfe]">{Math.round(displayMastery)}</span>
                       <span className="text-[10px] text-black">out of 100</span>
                     </div>
                   </div>
@@ -581,19 +581,19 @@ function LearnerInsightsContentInner({
                   <div className="flex w-[192px] flex-col items-end gap-2.5">
                     <div className="flex w-full items-center justify-between text-[12px]">
                       <span className="text-black">Application</span>
-                      <span className="font-medium text-[#9727fc]">40%</span>
+                      <span className="font-medium text-[#025dfe]">40%</span>
                     </div>
                     <div className="flex w-full items-center justify-between text-[12px]">
                       <span className="text-black">Retrieval</span>
-                      <span className="font-medium text-[#9727fc]">30%</span>
+                      <span className="font-medium text-[#025dfe]">30%</span>
                     </div>
                     <div className="flex w-full items-center justify-between text-[12px]">
                       <span className="text-black">Retention</span>
-                      <span className="font-medium text-[#9727fc]">20%</span>
+                      <span className="font-medium text-[#025dfe]">20%</span>
                     </div>
                     <div className="flex w-full items-center justify-between text-[12px]">
                       <span className="text-black">Behaviour</span>
-                      <span className="font-medium text-[#9727fc]">10%</span>
+                      <span className="font-medium text-[#025dfe]">10%</span>
                     </div>
                     <hr className="w-full border-[#eee]" />
                     <div className="flex w-[48px] flex-col items-end text-black">
