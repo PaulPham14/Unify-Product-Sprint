@@ -402,7 +402,7 @@ function LearnerInsightsContentInner({
             <button
               type="button"
               onClick={() => setIsLearnerPreviewMode(true)}
-              className="inline-flex items-center justify-center gap-[10px] rounded-[5px] bg-[#7f23ff] px-[10px] py-[5px] text-[12px] font-medium text-white hover:bg-[#7020e6]"
+              className="inline-flex items-center justify-center gap-[10px] rounded-[5px] bg-[#025dfe] px-[10px] py-[5px] text-[12px] font-medium text-white hover:bg-[#014dda]"
             >
               <Pointer className="size-[11px]" aria-hidden />
               View as a Learner
@@ -472,7 +472,6 @@ function LearnerInsightsContentInner({
               <h2 className="text-[14px] font-semibold tracking-[0.28px] text-black">
                 Recommended Actions To Take
               </h2>
-<<<<<<< HEAD
               {isLearnerPreviewMode ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <button
@@ -484,7 +483,7 @@ function LearnerInsightsContentInner({
                       <span className="text-[14px] font-medium text-black">Retrieval Practice</span>
                       <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                     </div>
-                    <span className="text-[18px] font-semibold text-[#7f23ff]">
+                    <span className="text-[18px] font-semibold text-[#025dfe]">
                       Review {selectedLearnerAttention?.moduleLabel?.toLowerCase() ?? "module"}
                     </span>
                   </button>
@@ -497,7 +496,7 @@ function LearnerInsightsContentInner({
                       <span className="text-[14px] font-medium text-black">Human-in-the-Loop</span>
                       <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                     </div>
-                    <span className="text-[18px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                    <span className="text-[18px] font-semibold text-[#025dfe]">Schedule office hours</span>
                   </button>
                 </div>
               ) : (
@@ -511,7 +510,7 @@ function LearnerInsightsContentInner({
                       <span className="text-[12px] font-medium text-black">Retrieval Practice</span>
                       <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                     </div>
-                    <span className="text-[15px] font-semibold text-[#7f23ff]">Assign review quiz</span>
+                    <span className="text-[15px] font-semibold text-[#025dfe]">Assign review quiz</span>
                   </button>
                   <button
                     type="button"
@@ -522,7 +521,7 @@ function LearnerInsightsContentInner({
                       <span className="text-[12px] font-medium text-black">Retention</span>
                       <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                     </div>
-                    <span className="text-[15px] font-semibold text-[#7f23ff]">Send concept walkthrough</span>
+                    <span className="text-[15px] font-semibold text-[#025dfe]">Send concept walkthrough</span>
                   </button>
                   <button
                     type="button"
@@ -533,7 +532,7 @@ function LearnerInsightsContentInner({
                       <span className="text-[12px] font-medium text-black">Human-in-the-Loop</span>
                       <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                     </div>
-                    <span className="text-[15px] font-semibold text-[#7f23ff]">Schedule office hours</span>
+                    <span className="text-[15px] font-semibold text-[#025dfe]">Schedule office hours</span>
                   </button>
                   <button
                     type="button"
@@ -544,58 +543,10 @@ function LearnerInsightsContentInner({
                       <span className="text-[12px] font-medium text-black">Spaced practice</span>
                       <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
                     </div>
-                    <span className="text-[15px] font-semibold text-[#7f23ff]">Send spaced quizzes</span>
+                    <span className="text-[15px] font-semibold text-[#025dfe]">Send spaced quizzes</span>
                   </button>
                 </div>
               )}
-=======
-              <div className="grid gap-3 sm:grid-cols-4">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("review_quiz")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Retrieval Practice</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#025dfe]">Assign review quiz</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("concept_walkthrough")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Retention</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#025dfe]">Send concept walkthrough</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("office_hours")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Human-in-the-Loop</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#025dfe]">Schedule office hours</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal("spaced_quiz")}
-                  className="relative flex flex-col gap-2 rounded-[14px] border-2 border-[#eee] bg-white p-3 text-left transition-shadow hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-black">Spaced practice</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-[#5b5b5b]" />
-                  </div>
-                  <span className="text-[15px] font-semibold text-[#025dfe]">Send spaced quizzes</span>
-                </button>
-              </div>
->>>>>>> 11d5f34791207c375258b64a37c27b02a5b2cfc3
             </section>
 
             {isLearnerPreviewMode ? (
@@ -652,13 +603,8 @@ function LearnerInsightsContentInner({
                     <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-<<<<<<< HEAD
                     {(isLearnerPreviewMode || selectedTrends.includes("Mastery")) && (
-                      <Line type="monotone" dataKey="Mastery" stroke="#9727fc" strokeWidth={2.5} dot={{ r: 3 }} />
-=======
-                    {selectedTrends.includes("Mastery") && (
                       <Line type="monotone" dataKey="Mastery" stroke="#025dfe" strokeWidth={2.5} dot={{ r: 3 }} />
->>>>>>> 11d5f34791207c375258b64a37c27b02a5b2cfc3
                     )}
                     {!isLearnerPreviewMode && selectedTrends.includes("Application") && (
                       <Line type="monotone" dataKey="Application" stroke="#00bcd4" strokeWidth={2} dot={{ r: 3 }} />

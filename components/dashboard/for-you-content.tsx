@@ -3,10 +3,6 @@
 import { useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useQuery } from "convex/react"
-<<<<<<< HEAD
-import Link from "next/link"
-=======
->>>>>>> 11d5f34791207c375258b64a37c27b02a5b2cfc3
 import { ChevronDown, ChevronRight, ChevronUp, ShieldAlert } from "lucide-react"
 import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
@@ -189,25 +185,6 @@ export function DashboardForYouContent() {
                 ref={scrollRef}
                 className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide"
               >
-<<<<<<< HEAD
-                <div className="flex flex-shrink-0 overflow-hidden rounded-xl border border-border bg-card">
-                  <div className="flex h-28 w-44 flex-col justify-end bg-gradient-to-br from-violet-500 to-purple-600 p-4">
-                    <span className="mb-1 inline-block w-fit rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-                      Course
-                    </span>
-                    <span className="text-base font-semibold text-white">AI for Sales & Business Strategy</span>
-                  </div>
-                  <div className="flex h-28 w-56 flex-col justify-between p-4">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                      Course
-                    </span>
-                    <div>
-                      <span className="text-sm font-semibold text-foreground">AI for Sales & Business Strategy</span>
-                      <div className="mt-2 flex items-center justify-end gap-2">
-                        <span className="text-xs text-muted-foreground">0%</span>
-                        <div className="h-1.5 w-24 rounded-full bg-secondary">
-                          <div className="h-1.5 rounded-full bg-primary" style={{ width: "0%" }} />
-=======
                 {trend.courses.length === 0 ? (
                   <div className="flex flex-shrink-0 items-center justify-center rounded-xl border border-border bg-card px-8 py-6 text-sm text-muted-foreground">
                     No courses yet
@@ -258,7 +235,6 @@ export function DashboardForYouContent() {
                               </div>
                             </div>
                           </div>
->>>>>>> 11d5f34791207c375258b64a37c27b02a5b2cfc3
                         </div>
                       </div>
                     )
