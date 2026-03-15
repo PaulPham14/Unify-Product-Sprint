@@ -56,10 +56,13 @@ export const getCourseProgressTrend = query({
       };
     }
 
-    const chartData = weekLabels.map((label, i) => {
+    // Build chart so Course Progress starts low and increases over weeks (Week 1 = oldest, Week 4 = latest).
+    // When a week has no data, use the previous week's value (never pull a high recent value into an older week).
+    const chartData: Array<Record<string, number | string>> = [];
+    for (let i = 0; i < weekLabels.length; i++) {
       const start = starts[i];
       const end = ends[i];
-      const row: Record<string, number | string> = { week: label };
+      const row: Record<string, number | string> = { week: weekLabels[i] };
 
       for (const c of courseList) {
         const inBucket = snapshots.filter((s) => {
@@ -67,25 +70,18 @@ export const getCourseProgressTrend = query({
           return snapshotCourseId === c.courseId && s.calculatedAt >= start && s.calculatedAt < end;
         });
         if (inBucket.length > 0) {
-          // Course progress: average ALL learner mastery snapshots for this course.
           row[c.courseId] = Math.round(
             inBucket.reduce((acc, s) => acc + s.masteryScore, 0) / inBucket.length
           );
           continue;
         }
 
-        // If no bucket data, carry forward nearest historical point for smooth lines.
-        const older = snapshots
-          .filter((s) => {
-            const snapshotCourseId = s.courseId ?? moduleToCourseId.get(s.moduleId);
-            return snapshotCourseId === c.courseId && s.calculatedAt < end;
-          })
-          .sort((a, b) => b.calculatedAt - a.calculatedAt)[0];
-        row[c.courseId] = older ? Math.round(older.masteryScore) : 0;
+        const prevValue = i > 0 ? (chartData[i - 1][c.courseId] as number | undefined) : undefined;
+        row[c.courseId] = typeof prevValue === "number" ? prevValue : 0;
       }
 
-      return row;
-    });
+      chartData.push(row);
+    }
 
     return {
       courses: courseList,

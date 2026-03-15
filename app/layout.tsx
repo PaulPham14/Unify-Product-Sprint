@@ -8,7 +8,7 @@ import './globals.css'
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: 'Community Dashboard',
+  title: 'Disco - Insights Dashboard',
   description: 'Your community learning platform dashboard',
 }
 

@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { useConvexAvailable } from "@/app/ConvexClientProvider"
 import { TablePagination } from "@/components/dashboard/table-pagination"
 import { buildCohortDiagnosisHref } from "@/lib/cohort-diagnosis"
+import { buildDashboardHref } from "@/lib/dashboard-route-state"
 import { getDefaultCourseDashboardConfig } from "@/convex/scoreUtils"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -948,8 +949,15 @@ function AssessmentTable({ assessments }: { assessments: AssessmentList }) {
 
   return (
     <div className="flex flex-col gap-4 rounded-[14px] border-2 border-[#eee] bg-white p-4">
-      <div className="py-2">
+      <div className="flex items-center justify-between py-2">
         <span className="text-sm font-medium text-black">Assessment Insights</span>
+        <Link
+          href={buildDashboardHref({ page: "dashboard", dashboardSubPage: "assessments" })}
+          className="text-xs font-normal text-[#7f23ff] underline hover:no-underline"
+          data-node-id="206:6905"
+        >
+          View All
+        </Link>
       </div>
       <div className="flex flex-col gap-4">
         <div className="flex w-full items-start rounded-[4px] bg-[#5b5b5b] py-[5px]">
