@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import {
   Home,
   BookOpen,
@@ -46,8 +47,8 @@ interface IconSidebarProps {
 export function IconSidebar({ activePage, onNavigate }: IconSidebarProps) {
   return (
     <div className="flex h-screen w-16 flex-col items-center border-r border-border bg-card py-4">
-      <div className="mb-6 flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-        U
+      <div className="mb-6 flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg">
+        <Image src="/image.png" alt="Logo" width={36} height={36} className="h-9 w-9 object-contain" />
       </div>
 
       <nav className="flex flex-1 flex-col items-center gap-1">
