@@ -146,12 +146,8 @@ function ConceptEngagementTable({
       </div>
 
       <div className="mt-4 flex flex-col gap-4">
-        <div className="overflow-x-auto">
-          <div className="min-w-[908px]">
-            <div className="grid grid-cols-[minmax(140px,1fr)_minmax(190px,1fr)_minmax(110px,1fr)_170px_minmax(220px,1fr)] items-start rounded-[4px] bg-[#5b5b5b] py-[5px]">
-              <div className="flex items-center justify-center">
-                <span className="text-[12px] font-bold leading-[1.5] text-white">Content</span>
-              </div>
+        <div className="w-full min-w-0">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr] items-start rounded-[4px] bg-[#5b5b5b] py-[5px]">
               <div className="flex items-center justify-center">
                 <span className="text-[12px] font-bold leading-[1.5] text-white">Concept</span>
               </div>
@@ -194,14 +190,9 @@ function ConceptEngagementTable({
               pageRows.map((row) => (
                 <div
                   key={row.analyticsId}
-                  className="grid min-h-[27px] grid-cols-[minmax(140px,1fr)_minmax(190px,1fr)_minmax(110px,1fr)_170px_minmax(220px,1fr)] items-center"
+                  className="grid min-h-[27px] grid-cols-[2fr_1fr_1fr_1.5fr] items-center"
                 >
-                  <div className="px-[10px] py-[7px]">
-                    <span className="block truncate text-[12px] leading-[1.5] text-black">
-                      {row.contentTitle}
-                    </span>
-                  </div>
-                  <div className="px-[10px] py-[7px] text-center">
+                  <div className="min-w-0 px-[10px] py-[7px] text-center">
                     <span className="block truncate text-[12px] leading-[1.5] text-black">
                       {row.conceptTitle}
                     </span>
@@ -222,7 +213,6 @@ function ConceptEngagementTable({
                 </div>
               ))
             )}
-          </div>
         </div>
 
         <TablePagination
